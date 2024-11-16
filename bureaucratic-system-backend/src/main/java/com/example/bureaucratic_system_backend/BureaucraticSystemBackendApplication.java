@@ -8,6 +8,6 @@ public class BureaucraticSystemBackendApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(BureaucraticSystemBackendApplication.class, args);
+		//System.out.println("miau");
 	}
-
 }
