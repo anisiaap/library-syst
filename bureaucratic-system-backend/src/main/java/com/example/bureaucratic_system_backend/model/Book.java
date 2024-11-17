@@ -5,23 +5,18 @@ public class Book {
     private String name;
     private String author;
     private boolean available;
-    private String borrowDate;
-    private String returnDate;
-    private String borrowedBy;
+
 
     // Default constructor for Firebase deserialization
     public Book() {
     }
 
     // Constructor
-    public Book(String id, String name, String author, boolean available, String borrowDate, String returnDate, String borrowedBy) {
+    public Book(String id, String name, String author, boolean available) {
         this.id = id;
         this.name = name;
         this.author = author;
         this.available = available;
-        this.borrowDate = borrowDate;
-        this.returnDate = returnDate;
-        this.borrowedBy = borrowedBy;
     }
 
     // Getters and setters
@@ -57,27 +52,4 @@ public class Book {
         this.available = available;
     }
 
-    public String getBorrowDate() {
-        return borrowDate;
-    }
-
-    public void setBorrowDate(String borrowDate) {
-        this.borrowDate = borrowDate;
-    }
-
-    public String getReturnDate() {
-        return returnDate;
-    }
-
-    public void setReturnDate(String returnDate) {
-        this.returnDate = returnDate;
-    }
-
-    public String getBorrowedBy() {
-        return borrowedBy;
-    }
-
-    public void setBorrowedBy(String borrowedBy) {
-        this.borrowedBy = borrowedBy;
-    }
 }

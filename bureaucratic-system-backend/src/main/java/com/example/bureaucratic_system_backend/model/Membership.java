@@ -1,15 +1,13 @@
 package com.example.bureaucratic_system_backend.model;
 
 public class Membership {
-    private String membershipNumber;
-    private String citizenName;
+    private String id;
     private String issueDate;
     private String citizenId;
 
     // Constructor
-    public Membership(String membershipNumber, String citizenName, String issueDate, String citizenId) {
-        this.membershipNumber = membershipNumber;
-        this.citizenName = citizenName;
+    public Membership(String membershipNumber , String issueDate, String citizenId) {
+        this.id = membershipNumber;
         this.issueDate = issueDate;
         this.citizenId = citizenId;
     }
@@ -18,11 +16,11 @@ public class Membership {
 
     // Getters and setters
     public String getMembershipNumber() {
-        return membershipNumber;
+        return id;
     }
 
     public void setMembershipNumber(String membershipId) {
-        this.membershipNumber = membershipId;
+        this.id = membershipId;
     }
 
     public String getCitizenId() {
@@ -33,13 +31,6 @@ public class Membership {
         this.citizenId = citizenId;
     }
 
-    public Object getCitizenName() {
-        return citizenName;
-    }
-
-    public void setCitizenName(String citizenName){
-        this.citizenName = citizenName;
-    }
 
     public void setIssueDate(String issueDate) {
         this.issueDate = issueDate;

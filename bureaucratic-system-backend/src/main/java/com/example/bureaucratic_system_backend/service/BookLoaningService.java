@@ -121,7 +121,7 @@ public class BookLoaningService implements Department {
             if (book.isAvailable() && FirebaseService.getMembershipIdById(citizenId) != null) {
                 logger.info("Book '{}' by '{}' is available. Assigning it to citizen ID {}.", bookTitle, bookAuthor, citizenId);
                 book.setAvailable(false);
-                FirebaseService.updateBook(book);
+                FirebaseService.borrowBook(book.getId(), FirebaseService.getMembershipIdById(citizenId));
                 logger.info("Book '{}' by '{}' successfully loaned to citizen ID {}.", bookTitle, bookAuthor, citizenId);
             } else {
                 logger.warn("Book '{}' by '{}' is unavailable or citizen ID {} does not have a valid membership.", bookTitle, bookAuthor, citizenId);

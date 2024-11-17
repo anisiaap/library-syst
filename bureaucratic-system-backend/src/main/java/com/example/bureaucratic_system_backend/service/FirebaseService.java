@@ -7,6 +7,7 @@ import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.*;
 
 @Service
@@ -28,35 +29,28 @@ public class FirebaseService {
         }
     }
 
-    public boolean borrowBook(String bookId, String membershipId) {
+    public static boolean borrowBook(String bookId, String membershipId) {
         DocumentReference bookRef = getFirestore().collection("books").document(bookId);
+
+        DocumentReference bookRef2 = getFirestore().collection("borrows").document(bookId);
         Map<String, Object> updates = new HashMap<>();
+        Map<String, Object> updates2 = new HashMap<>();
         updates.put("available", false);
-        updates.put("borrowedBy", membershipId);
-        updates.put("borrowDate", "2024-10-24");
+        //TODO instantiate a Borrow object
+        updates2.put("membershipId", membershipId);
+        updates2.put("bookId", bookId);
+        updates2.put("borrowDate", LocalDate.now().toString());
+        updates2.put("dueDate",LocalDate.now().plusDays(30).toString());
 
         try {
             WriteResult result = bookRef.update(updates).get();
-            System.out.println("Book borrowed successfully: " + result.getUpdateTime());
+            WriteResult result2 = getFirestore().collection("borrows")//TODO call the borrow object
+                    .document(bookId).set(updates2).get();// instead of book id - borrowId
+            System.out.println("Book borrowed successfully: " + result.getUpdateTime() +result2.getUpdateTime());
             return true;
         } catch (Exception e) {
             System.err.println("Error borrowing book: " + e.getMessage());
             return false;
-        }
-    }
-
-    public static void updateBook(Book book) {
-        DocumentReference bookRef = getFirestore().collection("books").document(book.getId());
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("available", book.isAvailable());
-        updates.put("borrowedBy", book.getBorrowedBy());
-        updates.put("borrowDate", book.getBorrowDate());
-
-        try {
-            WriteResult result = bookRef.update(updates).get();
-            System.out.println("Book updated successfully: " + result.getUpdateTime());
-        } catch (Exception e) {
-            System.err.println("Error updating book: " + e.getMessage());
         }
     }
 
@@ -76,8 +70,7 @@ public class FirebaseService {
 
     public void addMembership(Membership newMembership) {
         Map<String, Object> membershipData = new HashMap<>();
-        membershipData.put("membershipNumber", newMembership.getMembershipNumber());
-        membershipData.put("citizenName", newMembership.getCitizenName());
+        membershipData.put("id", newMembership.getMembershipNumber());
         membershipData.put("issueDate", newMembership.getIssueDate());
         membershipData.put("citizenId", newMembership.getCitizenId());
 
@@ -87,46 +80,6 @@ public class FirebaseService {
             System.out.println("Membership added successfully: " + result.getUpdateTime());
         } catch (Exception e) {
             System.err.println("Error adding membership: " + e.getMessage());
-        }
-    }
-
-    public void addOrUpdateDocumentForCitizen(String citizenId, String documentName) {
-        DocumentReference docRef = getFirestore().collection("citizenDocuments").document(citizenId);
-
-        try {
-            getFirestore().runTransaction(trans -> {
-                DocumentSnapshot snapshot = trans.get(docRef).get();
-                List<String> documents;
-                if (snapshot.exists() && snapshot.contains("documentNames")) {
-                    documents = (List<String>) snapshot.get("documentNames");
-                    if (!documents.contains(documentName)) {
-                        documents.add(documentName);
-                    }
-                } else {
-                    documents = new ArrayList<>();
-                    documents.add(documentName);
-                }
-                trans.set(docRef, Collections.singletonMap("documentNames", documents), SetOptions.merge());
-                return null;
-            }).get();
-            System.out.println("Document added/updated successfully for citizen: " + citizenId);
-        } catch (Exception e) {
-            System.err.println("Error during transaction: " + e.getMessage());
-        }
-    }
-
-    public boolean hasDocument(String citizenId, String documentName) {
-        DocumentReference docRef = getFirestore().collection("citizenDocuments").document(citizenId);
-        try {
-            DocumentSnapshot documentSnapshot = docRef.get().get();
-            if (documentSnapshot.exists()) {
-                List<String> documents = (List<String>) documentSnapshot.get("documentNames");
-                return documents != null && documents.contains(documentName);
-            }
-            return false;
-        } catch (Exception e) {
-            System.err.println("Error checking document: " + e.getMessage());
-            return false;
         }
     }
 
