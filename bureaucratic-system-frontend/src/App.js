@@ -17,7 +17,7 @@ function App() {
     <>
       {/* Background with Particles */}
       <ParticlesBackground />
-      <div className="flex flex-col min-h-screen relative z-10  from-blue-500 to-purple-600 text-white">
+      <div className="flex flex-col min-h-screen relative z-10  from-blue-500 to-purple-600 text-black">
         {/* Navbar */}
         <NavBar />
         

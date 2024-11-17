@@ -12,11 +12,11 @@ import java.util.*;
 @Service
 public class FirebaseService {
 
-    private Firestore getFirestore() {
+    private static Firestore getFirestore() {
         return FirestoreClient.getFirestore();
     }
 
-    public String getMembershipIdById(String citizenId) {
+    public static String getMembershipIdById(String citizenId) {
         try {
             ApiFuture<QuerySnapshot> query = getFirestore().collection("memberships")
                     .whereEqualTo("citizenId", citizenId).get();
@@ -45,7 +45,7 @@ public class FirebaseService {
         }
     }
 
-    public void updateBook(Book book) {
+    public static void updateBook(Book book) {
         DocumentReference bookRef = getFirestore().collection("books").document(book.getId());
         Map<String, Object> updates = new HashMap<>();
         updates.put("available", book.isAvailable());
@@ -60,7 +60,7 @@ public class FirebaseService {
         }
     }
 
-    public Book getBookByTitleAndAuthor(String title, String author) {
+    public static Book getBookByTitleAndAuthor(String title, String author) {
         try {
             ApiFuture<QuerySnapshot> query = getFirestore().collection("books")
                     .whereEqualTo("name", title)
