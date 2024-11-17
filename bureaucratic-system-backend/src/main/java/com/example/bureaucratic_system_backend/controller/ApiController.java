@@ -7,16 +7,21 @@ import com.example.bureaucratic_system_backend.service.FirebaseService;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
 public class ApiController {
+    private static final Logger logger = LoggerFactory.getLogger(BookLoaningService.class);
 
     @Autowired
     private BookLoaningService bookLoaningService;
@@ -40,6 +45,10 @@ public class ApiController {
 
     @PostMapping("/loan-request")
     public ResponseEntity<String> processLoanRequest(@RequestBody LoanRequest loanRequest) {
+        Map<String, Department> departments = new HashMap<>();
+        // Use the injected service directly without calling getInstance()
+        departments.put("BookLoaningDepartment", bookLoaningService);
+
         Citizen citizen = new Citizen();
         citizen.setId(loanRequest.getCitizenId());
         bookLoaningService.addCitizenToQueue(citizen, loanRequest.getBookTitle(), loanRequest.getBookAuthor());
@@ -47,48 +56,43 @@ public class ApiController {
     }
 
     @PostMapping("/pause-counter")
-    public ResponseEntity<String> pauseCounter(@RequestBody JsonObject jsonObject) {
-        String departmentName = jsonObject.has("department") ? jsonObject.get("department").getAsString() : null;
-        String counterIdParam = jsonObject.has("counterId") ? jsonObject.get("counterId").getAsString() : null;
-
-        if (departmentName == null || counterIdParam == null) {
-            return ResponseEntity.badRequest().body("Missing required parameters: department and/or counterId");
-        }
-
-        try {
-            int counterId = Integer.parseInt(counterIdParam);
-            if ("BookLoaningDepartment".equals(departmentName)) {
-                bookLoaningService.pauseCounter(counterId);
-                return ResponseEntity.ok("Counter " + counterId + " in " + departmentName + " paused for a coffee break");
-            } else {
-                return ResponseEntity.status(404).body("Department not found");
-            }
-        } catch (NumberFormatException e) {
-            return ResponseEntity.badRequest().body("Invalid counterId format. Must be an integer.");
-        }
+    public ResponseEntity<String> pauseCounter(@RequestBody BreakTime breakTime) {
+        return handleCounterAction(breakTime, true);
     }
 
     @PostMapping("/resume-counter")
-    public ResponseEntity<String> resumeCounter(@RequestBody JsonObject jsonObject) {
-        String departmentName = jsonObject.has("department") ? jsonObject.get("department").getAsString() : null;
-        String counterIdParam = jsonObject.has("counterId") ? jsonObject.get("counterId").getAsString() : null;
+    public ResponseEntity<String> resumeCounter(@RequestBody BreakTime breakTime) {
+        return handleCounterAction(breakTime, false);
+    }
 
-        if (departmentName == null || counterIdParam == null) {
-            return ResponseEntity.badRequest().body("Missing required parameters: department and/or counterId");
+    private ResponseEntity<String> handleCounterAction(BreakTime breakTime, boolean isPauseAction) {
+        String departmentName = breakTime.getDepartment();
+        int counterId = breakTime.getCounterId();
+
+        logger.info("Request received for {} action. {}", isPauseAction ? "pause" : "resume", breakTime);
+
+        if (departmentName == null || departmentName.isEmpty()) {
+            return ResponseEntity.badRequest().body("Missing required parameter: department");
         }
 
         try {
-            int counterId = Integer.parseInt(counterIdParam);
             if ("BookLoaningDepartment".equals(departmentName)) {
-                bookLoaningService.resumeCounter(counterId);
-                return ResponseEntity.ok("Counter " + counterId + " in " + departmentName + " resumed work");
+                if (isPauseAction) {
+                    bookLoaningService.pauseCounter(counterId);
+                    return ResponseEntity.ok("Counter " + counterId + " in " + departmentName + " paused for a coffee break");
+                } else {
+                    bookLoaningService.resumeCounter(counterId);
+                    return ResponseEntity.ok("Counter " + counterId + " in " + departmentName + " resumed work");
+                }
             } else {
                 return ResponseEntity.status(404).body("Department not found");
             }
-        } catch (NumberFormatException e) {
-            return ResponseEntity.badRequest().body("Invalid counterId format. Must be an integer.");
+        } catch (Exception e) {
+            logger.error("Error processing request for {}: {}", breakTime, e.getMessage(), e);
+            return ResponseEntity.status(500).body("Internal server error");
         }
     }
+
 
     @PostMapping("/enroll")
     public ResponseEntity<String> enrollCitizen(@RequestBody Citizen citizen) {
