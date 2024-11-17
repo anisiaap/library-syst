@@ -5,6 +5,8 @@ import com.example.bureaucratic_system_backend.model.Membership;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+
 @Service
 public class EnrollmentDepartmentService {
 
@@ -24,9 +26,8 @@ public class EnrollmentDepartmentService {
         try {
             System.out.println("Enrolling citizen: " + citizen.getName());
             Membership newMembership = new Membership("M" + System.currentTimeMillis(),
-                    citizen.getName(), "2024-10-24", citizen.getId());
+                    LocalDate.now().toString(), citizen.getId());
             firebaseService.addMembership(newMembership);
-            firebaseService.addOrUpdateDocumentForCitizen(citizen.getId(), "Membership ID");
             System.out.println("Citizen " + citizen.getName() + " enrolled with membership ID: " + newMembership.getMembershipNumber());
             return true;
         } catch (Exception e) {
