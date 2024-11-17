@@ -1,13 +1,64 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Body styling for consistent appearance */
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
+  background-color: #f9fafb; /* Light gray background for consistency */
+  color: #333; /* Default text color */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Code blocks styling */
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: 'Source Code Pro', Menlo, Monaco, Consolas, 'Courier New', monospace;
+  background-color: #f3f4f6; /* Slightly darker background for contrast */
+  padding: 0.25rem 0.5rem; /* Padding around code for visibility */
+  border-radius: 4px;
+  color: #d32f2f; /* Code text color */
+}
+
+/* Root isolation for better layering */
+#root {
+  isolation: isolate;
+}
+
+/* Navigation links reset and improved appearance */
+nav a {
+  text-decoration: none; /* Remove default underline */
+  color: inherit; /* Inherit color from context */
+  transition: color 0.3s ease, background-color 0.3s ease; /* Smooth hover effects */
+}
+
+/* Ensure consistent box-sizing */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Reset conflicting styles for custom navbars */
+.navbar-reset {
+  all: unset; /* Reset all inherited styles */
+}
+
+.navbar-reset a {
+  cursor: pointer;
+  font-weight: 500; /* Medium weight for better readability */
+  transition: color 0.3s ease, background-color 0.3s ease;
+}
+
+.navbar-reset a:hover {
+  color: #1d4ed8; /* Tailwind blue-700 for hover */
+  background-color: #e0f2fe; /* Tailwind light blue for hover effect */
+}
+
+/* Utility class for box-shadow on nav */
+.nav-shadow {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
 }
