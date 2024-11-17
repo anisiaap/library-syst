@@ -1,24 +1,17 @@
-import firebase from 'firebase/app';
-import 'firebase/firestore'; // For Firestore
-import 'firebase/auth'; // For Firebase Auth if needed
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 
-// Firebase configuration object (replace with your own keys)
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID",
+  apiKey: "AIzaSyDjjNG1ipqcgJIpY_sroO50AaEsPUMtlTQ",
+  authDomain: "librarysyst-66e8b.firebaseapp.com",
+  databaseURL: "https://librarysyst-66e8b-default-rtdb.firebaseio.com",
+  projectId: "librarysyst-66e8b",
+  storageBucket: "librarysyst-66e8b.appspot.com",
+  messagingSenderId: "743103631141",
+  appId: "1:743103631141:web:3fc0f63c35dabd32de94cc",
 };
 
 // Initialize Firebase
-const firebaseApp = !firebase.apps.length ? firebase.initializeApp(firebaseConfig) : firebase.app();
+const app = initializeApp(firebaseConfig);
 
-// Initialize Firestore
-const db = firebaseApp.firestore();
-
-// Initialize Auth (if needed)
-const auth = firebaseApp.auth();
-
-export { db, auth };
+export const auth = getAuth(app);
