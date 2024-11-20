@@ -1,23 +1,28 @@
 package com.example.bureaucratic_system_backend.model;
 
-
 public class Fees {
     private String id;
     private String membershipId;
     private String amount;
     private String borrowId;
+    private String paid;
+    private String dueDate;
 
-   private String paid;
     // Constructor
-
-    public Fees(String id, String membershipId, String amount, String borrowId, String paid) {
+    public Fees(String id, String membershipId, String amount, String borrowId, String paid, String dueDate) {
         this.id = id;
         this.membershipId = membershipId;
         this.amount = amount;
         this.borrowId = borrowId;
         this.paid = paid;
+        this.dueDate = dueDate;
     }
 
+    // Default constructor
+    public Fees() {
+    }
+
+    // Getters and setters
     public String getId() {
         return id;
     }
@@ -56,5 +61,13 @@ public class Fees {
 
     public void setPaid(String paid) {
         this.paid = paid;
+    }
+
+    public String getDueDate() {
+        return dueDate;
+    }
+
+    public void setDueDate(String dueDate) {
+        this.dueDate = dueDate;
     }
 }
