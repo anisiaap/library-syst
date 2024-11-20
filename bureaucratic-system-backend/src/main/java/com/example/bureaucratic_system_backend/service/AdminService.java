@@ -1,6 +1,7 @@
 package com.example.bureaucratic_system_backend.service;
 
 import com.example.bureaucratic_system_backend.model.Book;
+import com.example.bureaucratic_system_backend.model.Borrows;
 import com.example.bureaucratic_system_backend.model.Citizen;
 import com.example.bureaucratic_system_backend.model.Membership;
 import org.springframework.stereotype.Service;
@@ -180,6 +181,48 @@ public class AdminService {
             System.out.println("Fee deleted successfully: " + feeId);
         } catch (Exception e) {
             System.err.println("Error deleting fee with ID: " + feeId + ": " + e.getMessage());
+        } finally {
+            lock.unlock();
+        }
+    }
+    // ----------------------- Borrows Management -----------------------
+
+    public void addBorrow(Borrows borrow) {
+        try {
+            firebaseService.addBorrow(borrow);
+            System.out.println("Borrow record added successfully: " + borrow.getId());
+        } catch (Exception e) {
+            System.err.println("Error adding borrow record: " + e.getMessage());
+        }
+    }
+
+    public void updateBorrow(String borrowId, Borrows updatedBorrow) {
+        String lockKey = "borrow:" + borrowId;
+        feeLocks.putIfAbsent(lockKey, new ReentrantLock()); // Reuse feeLocks for simplicity
+        Lock lock = feeLocks.get(lockKey);
+
+        lock.lock();
+        try {
+            firebaseService.updateBorrow(borrowId, updatedBorrow);
+            System.out.println("Borrow record updated successfully: " + borrowId);
+        } catch (Exception e) {
+            System.err.println("Error updating borrow record: " + e.getMessage());
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void deleteBorrow(String borrowId) {
+        String lockKey = "borrow:" + borrowId;
+        feeLocks.putIfAbsent(lockKey, new ReentrantLock()); // Reuse feeLocks for simplicity
+        Lock lock = feeLocks.get(lockKey);
+
+        lock.lock();
+        try {
+            firebaseService.deleteBorrow(borrowId);
+            System.out.println("Borrow record deleted successfully: " + borrowId);
+        } catch (Exception e) {
+            System.err.println("Error deleting borrow record: " + e.getMessage());
         } finally {
             lock.unlock();
         }

@@ -1,5 +1,6 @@
 package com.example.bureaucratic_system_backend.service;
 
+import com.example.bureaucratic_system_backend.model.Borrows;
 import com.example.bureaucratic_system_backend.model.Fees;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +20,6 @@ public class FeeService {
 
     // Locks for thread-safe fee management
     private final Map<String, Lock> feeLocks = new ConcurrentHashMap<>();
-
     private final FirebaseService firebaseService;
 
     public FeeService(FirebaseService firebaseService) {
@@ -28,20 +28,31 @@ public class FeeService {
 
     // ----------------------- Fee Management -----------------------
 
-    // Generate a fee for overdue returns
-    public void generateOverdueFee(String borrowId, String membershipId, String dueDate, String actualReturnDate) {
+    // Generate overdue fee based on borrow data
+    public void generateOverdueFee(String borrowId) {
         feeLocks.putIfAbsent(borrowId, new ReentrantLock());
         Lock lock = feeLocks.get(borrowId);
 
         lock.lock();
         try {
-            LocalDate due = LocalDate.parse(dueDate);
-            LocalDate returned = LocalDate.parse(actualReturnDate);
+            Borrows borrow = firebaseService.getBorrowById(borrowId);
+            if (borrow == null) {
+                logger.warn("Borrow record not found for borrow ID: {}", borrowId);
+                return;
+            }
 
-            long overdueDays = ChronoUnit.DAYS.between(due, returned);
+            if (borrow.getReturnDate() == null) {
+                logger.warn("Book not returned yet for borrow ID: {}", borrowId);
+                return;
+            }
+
+            LocalDate dueDate = LocalDate.parse(borrow.getDueDate());
+            LocalDate returnDate = LocalDate.parse(borrow.getReturnDate());
+
+            long overdueDays = ChronoUnit.DAYS.between(dueDate, returnDate);
             if (overdueDays > 0) {
                 String amount = String.valueOf(overdueDays * 1); // Example: $1 per day
-                Fees fee = new Fees(borrowId, membershipId, amount, borrowId, "false", dueDate);
+                Fees fee = new Fees(borrowId, borrow.getMembershipId(), amount, borrowId, "false");
                 firebaseService.addFee(fee);
                 logger.info("Overdue fee generated: $ {} for borrow ID: {}", amount, borrowId);
             } else {
@@ -71,37 +82,6 @@ public class FeeService {
             }
         } catch (Exception e) {
             logger.error("Error marking fee as paid for fee ID: {}: {}", feeId, e.getMessage());
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    // Calculate and update overdue fees for a given borrow ID
-    public void updateOverdueFee(String borrowId, String actualReturnDate) {
-        feeLocks.putIfAbsent(borrowId, new ReentrantLock());
-        Lock lock = feeLocks.get(borrowId);
-
-        lock.lock();
-        try {
-            Fees fee = firebaseService.getFeeByBorrowId(borrowId);
-            if (fee != null && fee.getDueDate() != null) {
-                LocalDate dueDate = LocalDate.parse(fee.getDueDate());
-                LocalDate returnDate = LocalDate.parse(actualReturnDate);
-
-                long overdueDays = ChronoUnit.DAYS.between(dueDate, returnDate);
-                if (overdueDays > 0) {
-                    String newAmount = String.valueOf(overdueDays * 1); // Example: $1 per day
-                    fee.setAmount(newAmount);
-                    firebaseService.updateFee(borrowId, fee);
-                    logger.info("Overdue fee updated: $ {} for borrow ID: {}", newAmount, borrowId);
-                } else {
-                    logger.info("No update needed. Book returned on time for borrow ID: {}", borrowId);
-                }
-            } else {
-                logger.warn("Fee or due date not found for borrow ID: {}", borrowId);
-            }
-        } catch (Exception e) {
-            logger.error("Error updating overdue fee for borrow ID: {}: {}", borrowId, e.getMessage());
         } finally {
             lock.unlock();
         }

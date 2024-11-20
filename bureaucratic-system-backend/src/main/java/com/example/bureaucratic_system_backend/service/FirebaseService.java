@@ -1,16 +1,16 @@
 package com.example.bureaucratic_system_backend.service;
 
-import com.example.bureaucratic_system_backend.model.Book;
-import com.example.bureaucratic_system_backend.model.Citizen;
-import com.example.bureaucratic_system_backend.model.Fees;
-import com.example.bureaucratic_system_backend.model.Membership;
+import com.example.bureaucratic_system_backend.model.*;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class FirebaseService {
@@ -198,6 +198,45 @@ public class FirebaseService {
             System.out.println("Fee deleted successfully: " + feeId);
         } catch (Exception e) {
             System.err.println("Error deleting fee: " + e.getMessage());
+        }
+    }
+
+    // ----------------------- Borrows -----------------------
+
+    public void addBorrow(Borrows borrow) {
+        try {
+            getFirestore().collection("borrows").document(borrow.getId()).set(borrow).get();
+            System.out.println("Borrow record added successfully: " + borrow.getId());
+        } catch (Exception e) {
+            System.err.println("Error adding borrow record: " + e.getMessage());
+        }
+    }
+
+    public Borrows getBorrowById(String borrowId) {
+        try {
+            DocumentSnapshot snapshot = getFirestore().collection("borrows").document(borrowId).get().get();
+            return snapshot.exists() ? snapshot.toObject(Borrows.class) : null;
+        } catch (Exception e) {
+            System.err.println("Error retrieving borrow record: " + e.getMessage());
+            return null;
+        }
+    }
+
+    public void updateBorrow(String borrowId, Borrows updatedBorrow) {
+        try {
+            getFirestore().collection("borrows").document(borrowId).set(updatedBorrow).get();
+            System.out.println("Borrow record updated successfully: " + borrowId);
+        } catch (Exception e) {
+            System.err.println("Error updating borrow record: " + e.getMessage());
+        }
+    }
+
+    public void deleteBorrow(String borrowId) {
+        try {
+            getFirestore().collection("borrows").document(borrowId).delete().get();
+            System.out.println("Borrow record deleted successfully: " + borrowId);
+        } catch (Exception e) {
+            System.err.println("Error deleting borrow record: " + e.getMessage());
         }
     }
 
