@@ -28,7 +28,23 @@ public class FeeService {
 
     // ----------------------- Fee Management -----------------------
 
-    // Generate overdue fee based on borrow data
+    // Manually add a custom fee
+    public void addFee(Fees fee) {
+        feeLocks.putIfAbsent(fee.getId(), new ReentrantLock());
+        Lock lock = feeLocks.get(fee.getId());
+
+        lock.lock();
+        try {
+            firebaseService.addFee(fee);
+            logger.info("Fee added successfully: {}", fee);
+        } catch (Exception e) {
+            logger.error("Error adding fee: {}", e.getMessage());
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    // Automatically generate overdue fee based on borrow data
     public void generateOverdueFee(String borrowId) {
         feeLocks.putIfAbsent(borrowId, new ReentrantLock());
         Lock lock = feeLocks.get(borrowId);
@@ -72,7 +88,7 @@ public class FeeService {
 
         lock.lock();
         try {
-            Fees fee = firebaseService.getFeeByBorrowId(feeId);
+            Fees fee = firebaseService.getFeeById(feeId);
             if (fee != null) {
                 fee.setPaid("true");
                 firebaseService.updateFee(feeId, fee);

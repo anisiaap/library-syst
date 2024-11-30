@@ -6,6 +6,7 @@ import com.example.bureaucratic_system_backend.model.Citizen;
 import com.example.bureaucratic_system_backend.model.Membership;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
@@ -28,6 +29,14 @@ public class AdminService {
     }
 
     // ----------------------- Books Management -----------------------
+
+    public List<Book> getAllBooks() {
+        try {
+            return firebaseService.getAllBooksFromFirestore();
+        } catch (Exception e) {
+            throw new RuntimeException("Error retrieving books: " + e.getMessage(), e);
+        }
+    }
 
     public void addBook(Book book) {
         try {
@@ -87,7 +96,7 @@ public class AdminService {
 
         lock.lock();
         try {
-            firebaseService.updateField("citizens", citizenId, fieldName, value);
+            firebaseService.updateField("citizen", citizenId, fieldName, value);
             System.out.println("Citizen field '" + fieldName + "' updated successfully for citizen ID: " + citizenId);
         } catch (Exception e) {
             System.err.println("Error updating citizen field '" + fieldName + "' for citizen ID: " + citizenId + ": " + e.getMessage());
@@ -227,4 +236,6 @@ public class AdminService {
             lock.unlock();
         }
     }
+
+
 }

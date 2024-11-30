@@ -140,7 +140,7 @@ public class FirebaseService {
 
     public void addCitizen(Citizen citizen) {
         try {
-            getFirestore().collection("citizens").document(citizen.getId()).set(citizen).get();
+            getFirestore().collection("citizen").document(citizen.getId()).set(citizen).get();
             System.out.println("Citizen added successfully: " + citizen.getName());
         } catch (Exception e) {
             System.err.println("Error adding citizen: " + e.getMessage());
@@ -148,12 +148,12 @@ public class FirebaseService {
     }
 
     public void updateCitizenField(String citizenId, String fieldName, Object value) {
-        updateField("citizens", citizenId, fieldName, value);
+        updateField("citizen", citizenId, fieldName, value);
     }
 
     public void deleteCitizen(String citizenId) {
         try {
-            getFirestore().collection("citizens").document(citizenId).delete().get();
+            getFirestore().collection("citizen").document(citizenId).delete().get();
             System.out.println("Citizen deleted successfully: " + citizenId);
         } catch (Exception e) {
             System.err.println("Error deleting citizen: " + e.getMessage());
@@ -191,6 +191,38 @@ public class FirebaseService {
             return null;
         }
     }
+
+    public Fees getFeeById(String feeId) {
+        try {
+            ApiFuture<QuerySnapshot> query = getFirestore().collection("fees")
+                    .whereEqualTo("id", feeId).get(); // Match the "id" field with feeId
+            List<QueryDocumentSnapshot> documents = query.get().getDocuments();
+            return documents.isEmpty() ? null : documents.get(0).toObject(Fees.class);
+        } catch (Exception e) {
+            System.err.println("Error fetching fee by ID: " + e.getMessage());
+            return null;
+        }
+    }
+
+    public List<Fees> getFeesByMembershipId(String membershipId) {
+        try {
+            // Query Firestore for documents with the specific membership ID
+            ApiFuture<QuerySnapshot> query = getFirestore().collection("fees")
+                    .whereEqualTo("membershipId", membershipId).get(); // Match "membershipId" field
+            List<QueryDocumentSnapshot> documents = query.get().getDocuments();
+
+            // Convert each document to a Fees object and return as a list
+            List<Fees> feesList = new ArrayList<>();
+            for (QueryDocumentSnapshot document : documents) {
+                feesList.add(document.toObject(Fees.class));
+            }
+            return feesList;
+        } catch (Exception e) {
+            System.err.println("Error fetching fees by membership ID: " + e.getMessage());
+            return new ArrayList<>(); // Return an empty list if an error occurs
+        }
+    }
+
 
     public void deleteFee(String feeId) {
         try {
