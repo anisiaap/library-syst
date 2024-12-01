@@ -11,70 +11,104 @@ import WelcomePage from './pages/WelcomePage';
 import ProtectedRoute from './components/ProtectedRoute';
 import ParticlesBackground from './components/ParticlesBackground';
 import NotFoundPage from './components/NotFoundPage';
+import WelcomeAdmin from "./pages/WelcomeAdmin";
+import WelcomeClient from "./pages/WelcomeClient";
+import AdminLogin from "./pages/AdminLogin";
+import CitizenDashboard from "./pages/CitizenDashboard";
+import { AuthProvider } from './components/AuthProvider.js';
+import ReturnRequest from "./pages/ReturnBook";
+import PayFee from "./pages/PayFee"; // AuthProvider for managing authentication
 
 function App() {
-  return (
-    <>
-      {/* Background with Particles */}
-      <ParticlesBackground />
-      <div className="flex flex-col min-h-screen relative z-10  from-blue-500 to-purple-600 text-black">
-        {/* Navbar */}
-        <NavBar />
-        
-        {/* Main Content Area */}
-        <main className="flex-grow">
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<WelcomePage />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
+    return (
+        <AuthProvider>
+            {/* Background with Particles */}
+            <ParticlesBackground />
+            <div className="flex flex-col min-h-screen relative z-10 from-blue-500 to-purple-600 text-black">
+                {/* Navbar */}
+                <NavBar />
 
-            {/* Protected Routes */}
-            <Route
-              path="/books"
-              element={
-                <ProtectedRoute>
-                  <Books />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/loan"
-              element={
-                <ProtectedRoute>
-                  <LoanRequest />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/enroll"
-              element={
-                <ProtectedRoute>
-                  <Enroll />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/config"
-              element={
-                <ProtectedRoute>
-                  <Config />
-                </ProtectedRoute>
-              }
-            />
+                {/* Main Content Area */}
+                <main className="flex-grow">
+                    <Routes>
+                        {/* Public Routes */}
+                        <Route path="/" element={<WelcomePage />} />
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/signup" element={<Signup />} />
+                        <Route path="/welcomeadmin" element={<WelcomeAdmin />} />
+                        <Route path="/welcomeclient" element={<WelcomeClient />} />
+                        <Route path="/loginadmin" element={<AdminLogin />} />
 
-            {/* 404 Not Found Route */}
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </main>
+                        {/* Protected Routes */}
+                        <Route
+                            path="/books"
+                            element={
+                                <ProtectedRoute allowedRoles={['admin', 'citizen']}>
+                                    <Books />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/citizen-dashboard"
+                            element={
+                                <ProtectedRoute allowedRoles={['citizen']}>
+                                    <CitizenDashboard />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/loan"
+                            element={
+                                <ProtectedRoute allowedRoles={['citizen']}>
+                                    <LoanRequest />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/return"
+                            element={
+                                <ProtectedRoute allowedRoles={['citizen']}>
+                                    <ReturnRequest />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/pay-fee"
+                            element={
+                                <ProtectedRoute allowedRoles={['citizen']}>
+                                    <PayFee />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/enroll"
+                            element={
+                                <ProtectedRoute allowedRoles={['admin', 'citizen']}>
+                                    <Enroll />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/config"
+                            element={
+                                <ProtectedRoute allowedRoles={['admin']}>
+                                    <Config />
+                                </ProtectedRoute>
+                            }
+                        />
 
-        {/* Footer */}
-        <footer className="py-4 text-center bg-opacity-50 text-gray-100">
-          <p>&copy; 2024 Your App Name. All rights reserved.</p>
-        </footer>
-      </div>
-    </>
-  );
+                        {/* 404 Not Found Route */}
+                        <Route path="*" element={<NotFoundPage />} />
+                    </Routes>
+                </main>
+
+                {/* Footer */}
+                <footer className="py-4 text-center bg-opacity-50 text-gray-100">
+                    <p>&copy; 2024 Bureaucratic Library System. All rights reserved.</p>
+                </footer>
+            </div>
+        </AuthProvider>
+    );
 }
 
 export default App;

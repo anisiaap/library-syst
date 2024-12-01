@@ -9,14 +9,14 @@ const ParticlesBackground = () => {
         window.particlesJS('particles-container', {
           particles: {
             number: {
-              value: 150, // Number of particles
+              value: 230, // Number of particles
               density: { enable: true, value_area: 800 },
             },
             color: { value: '#ffffff' }, // White particles
             shape: { type: 'circle', stroke: { width: 0, color: '#000000' } },
             opacity: { value: 0.6, random: true },
             size: { value: 3, random: true },
-            line_linked: { enable: true, distance: 120, color: '#ffffff', opacity: 0.4, width: 1 },
+            line_linked: { enable: false, distance: 120, color: '#ffffff', opacity: 0.4, width: 1 },
             move: { enable: true, speed: 2, direction: 'none', random: true, out_mode: 'out' },
           },
           interactivity: {
@@ -48,7 +48,7 @@ const ParticlesBackground = () => {
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: '#1a202c', // Tailwind dark gray
+        backgroundColor: '#C4A484', // Tailwind dark gray
         zIndex: -1,
         pointerEvents: 'none', // Allows interactions through the particles
       }}

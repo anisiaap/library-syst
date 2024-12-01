@@ -6,7 +6,7 @@ const Config = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    axios.post('http://localhost:8080/api/config', JSON.parse(config))
+    axios.post('http://localhost:8080/api/admin/config', JSON.parse(config))
       .then(() => alert('Configuration submitted!'))
       .catch(err => alert('Error: ' + err.message));
   };

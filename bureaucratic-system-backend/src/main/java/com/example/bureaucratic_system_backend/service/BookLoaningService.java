@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Map;
 import java.util.Queue;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.Lock;
@@ -21,7 +22,6 @@ public class BookLoaningService implements Department {
 
     private static final Logger logger = LoggerFactory.getLogger(BookLoaningService.class);
 
-    //private final FirebaseService firebaseService;
 
     private final Queue<LoanRequest> queue = new LinkedBlockingQueue<>();
     private final Map<String, Lock> bookLocks = new ConcurrentHashMap<>();
@@ -30,25 +30,25 @@ public class BookLoaningService implements Department {
     private final Thread counter2;
     private volatile boolean counter1Paused = false;
     private volatile boolean counter2Paused = false;
+    private final BorrowService borrowService;
 
-
-    public BookLoaningService() {
+    public BookLoaningService(BorrowService borrowService) {
 
 
         counter1 = new Thread(() -> processQueue(1));
         counter2 = new Thread(() -> processQueue(2));
         counter1.start();
         counter2.start();
-
+        this.borrowService = borrowService;
         logger.info("BookLoaningService initialized. Counters started.");
     }
-    public static synchronized BookLoaningService getInstance() {
-
-        if (instance == null) {
-            instance = new BookLoaningService();
-        }
-        return instance;
-    }
+//    public static synchronized BookLoaningService getInstance() {
+//
+//        if (instance == null) {
+//            instance = new BookLoaningService();
+//        }
+//        return instance;
+//    }
 
     public void addCitizenToQueue(Citizen citizen, String bookTitle, String bookAuthor) {
         synchronized (queue) {
@@ -121,7 +121,11 @@ public class BookLoaningService implements Department {
             if (book.isAvailable() && FirebaseService.getMembershipIdById(citizenId) != null) {
                 logger.info("Book '{}' by '{}' is available. Assigning it to citizen ID {}.", bookTitle, bookAuthor, citizenId);
                 book.setAvailable(false);
-                FirebaseService.borrowBook(book.getId(), FirebaseService.getMembershipIdById(citizenId));
+                String membershipId = FirebaseService.getMembershipIdById(citizenId);
+                //FirebaseService.borrowBook(book.getId(), FirebaseService.getMembershipIdById(citizenId));
+                String borrowId = UUID.randomUUID().toString();
+                borrowService.createBorrow(borrowId, book.getId(), membershipId);
+
                 logger.info("Book '{}' by '{}' successfully loaned to citizen ID {}.", bookTitle, bookAuthor, citizenId);
             } else {
                 logger.warn("Book '{}' by '{}' is unavailable or citizen ID {} does not have a valid membership.", bookTitle, bookAuthor, citizenId);

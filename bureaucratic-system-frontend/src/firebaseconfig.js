@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDjjNG1ipqcgJIpY_sroO50AaEsPUMtlTQ",
@@ -15,3 +15,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
+setPersistence(auth, browserLocalPersistence)
+    .then(() => {
+      // Now the user will stay logged in even after refreshing the page
+    })
+    .catch((error) => {
+      console.error('Error setting persistence:', error);
+    });

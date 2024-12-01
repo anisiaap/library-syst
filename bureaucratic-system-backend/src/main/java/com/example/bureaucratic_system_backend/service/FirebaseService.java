@@ -3,6 +3,8 @@ package com.example.bureaucratic_system_backend.service;
 import com.example.bureaucratic_system_backend.model.*;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseToken;
 import com.google.firebase.cloud.FirestoreClient;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +19,9 @@ public class FirebaseService {
 
     private static Firestore getFirestore() {
         return FirestoreClient.getFirestore();
+    }
+    public void assignRole(String userId, String role) throws Exception {
+        FirebaseAuth.getInstance().setCustomUserClaims(userId, Map.of("role", role));
     }
 
     // ----------------------- Memberships -----------------------
@@ -62,35 +67,35 @@ public class FirebaseService {
 
     // ----------------------- Books -----------------------
 
-    public static boolean borrowBook(String bookId, String membershipId) {
-        DocumentReference bookRef = getFirestore().collection("books").document(bookId);
-        CollectionReference borrowCollection = getFirestore().collection("borrows");
-
-        Map<String, Object> bookUpdates = new HashMap<>();
-        Map<String, Object> borrowData = new HashMap<>();
-        bookUpdates.put("available", false);
-        borrowData.put("membershipId", membershipId);
-        borrowData.put("bookId", bookId);
-        borrowData.put("borrowDate", LocalDate.now().toString());
-        borrowData.put("dueDate", LocalDate.now().plusDays(30).toString());
-
-        try {
-            // Update the book's availability
-            WriteResult bookResult = bookRef.update(bookUpdates).get();
-
-            // Create a new borrow record with an auto-generated ID
-            DocumentReference newBorrowRef = borrowCollection.document(); // Auto-generated ID instead of book id to avoid overwriting
-            borrowData.put("id", newBorrowRef.getId()); // store the generated ID in the borrow record
-            WriteResult borrowResult = newBorrowRef.set(borrowData).get();
-
-            System.out.println("Book borrowed successfully: " + bookResult.getUpdateTime() +
-                    ", Borrow record created with ID: " + newBorrowRef.getId());
-            return true;
-        } catch (Exception e) {
-            System.err.println("Error borrowing book: " + e.getMessage());
-            return false;
-        }
-    }
+//    public static boolean borrowBook(String bookId, String membershipId) {
+//        DocumentReference bookRef = getFirestore().collection("books").document(bookId);
+//        CollectionReference borrowCollection = getFirestore().collection("borrows");
+//
+//        Map<String, Object> bookUpdates = new HashMap<>();
+//        Map<String, Object> borrowData = new HashMap<>();
+//        bookUpdates.put("available", false);
+//        borrowData.put("membershipId", membershipId);
+//        borrowData.put("bookId", bookId);
+//        borrowData.put("borrowDate", LocalDate.now().toString());
+//        borrowData.put("dueDate", LocalDate.now().plusDays(30).toString());
+//
+//        try {
+//            // Update the book's availability
+//            WriteResult bookResult = bookRef.update(bookUpdates).get();
+//
+//            // Create a new borrow record with an auto-generated ID
+//            DocumentReference newBorrowRef = borrowCollection.document(); // Auto-generated ID instead of book id to avoid overwriting
+//            borrowData.put("id", newBorrowRef.getId()); // store the generated ID in the borrow record
+//            WriteResult borrowResult = newBorrowRef.set(borrowData).get();
+//
+//            System.out.println("Book borrowed successfully: " + bookResult.getUpdateTime() +
+//                    ", Borrow record created with ID: " + newBorrowRef.getId());
+//            return true;
+//        } catch (Exception e) {
+//            System.err.println("Error borrowing book: " + e.getMessage());
+//            return false;
+//        }
+//    }
 
 
     public static Book getBookByTitleAndAuthor(String title, String author) {
@@ -277,6 +282,41 @@ public class FirebaseService {
             System.out.println("Borrow record deleted successfully: " + borrowId);
         } catch (Exception e) {
             System.err.println("Error deleting borrow record: " + e.getMessage());
+        }
+    }
+    public Borrows getBorrowByMembershipAndBook(String membershipId, String bookTitle, String bookAuthor) {
+        try {
+            // Step 1: Fetch the Book ID from the Books collection
+            ApiFuture<QuerySnapshot> bookQuery = getFirestore().collection("books")
+                    .whereEqualTo("name", bookTitle)
+                    .whereEqualTo("author", bookAuthor)
+                    .get();
+
+            List<QueryDocumentSnapshot> bookDocuments = bookQuery.get().getDocuments();
+            if (bookDocuments.isEmpty()) {
+                System.err.println("Book not found for title: " + bookTitle + ", author: " + bookAuthor);
+                return null;
+            }
+
+            String bookId = bookDocuments.get(0).getId(); // Assuming book ID is the document ID
+
+            // Step 2: Fetch the Borrow record using membershipId and bookId
+            ApiFuture<QuerySnapshot> borrowQuery = getFirestore().collection("borrows")
+                    .whereEqualTo("membershipId", membershipId)
+                    .whereEqualTo("bookId", bookId)
+                    .whereEqualTo("returnDate", null) // Ensure the book hasn't been returned yet
+                    .get();
+
+            List<QueryDocumentSnapshot> borrowDocuments = borrowQuery.get().getDocuments();
+            if (borrowDocuments.isEmpty()) {
+                System.err.println("No active borrow found for membershipId: " + membershipId + ", bookId: " + bookId);
+                return null;
+            }
+
+            return borrowDocuments.get(0).toObject(Borrows.class);
+        } catch (Exception e) {
+            System.err.println("Error fetching borrow record: " + e.getMessage());
+            return null;
         }
     }
 
