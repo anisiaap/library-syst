@@ -64,7 +64,7 @@ public class FirebaseService {
 
     public static boolean borrowBook(String bookId, String membershipId) {
         DocumentReference bookRef = getFirestore().collection("books").document(bookId);
-        DocumentReference borrowRef = getFirestore().collection("borrows").document(bookId);
+        CollectionReference borrowCollection = getFirestore().collection("borrows");
 
         Map<String, Object> bookUpdates = new HashMap<>();
         Map<String, Object> borrowData = new HashMap<>();
@@ -75,15 +75,23 @@ public class FirebaseService {
         borrowData.put("dueDate", LocalDate.now().plusDays(30).toString());
 
         try {
+            // Update the book's availability
             WriteResult bookResult = bookRef.update(bookUpdates).get();
-            WriteResult borrowResult = borrowRef.set(borrowData).get();
-            System.out.println("Book borrowed successfully: " + bookResult.getUpdateTime() + ", Borrow record created: " + borrowResult.getUpdateTime());
+
+            // Create a new borrow record with an auto-generated ID
+            DocumentReference newBorrowRef = borrowCollection.document(); // Auto-generated ID instead of book id to avoid overwriting
+            borrowData.put("id", newBorrowRef.getId()); // store the generated ID in the borrow record
+            WriteResult borrowResult = newBorrowRef.set(borrowData).get();
+
+            System.out.println("Book borrowed successfully: " + bookResult.getUpdateTime() +
+                    ", Borrow record created with ID: " + newBorrowRef.getId());
             return true;
         } catch (Exception e) {
             System.err.println("Error borrowing book: " + e.getMessage());
             return false;
         }
     }
+
 
     public static Book getBookByTitleAndAuthor(String title, String author) {
         try {
@@ -272,7 +280,7 @@ public class FirebaseService {
         }
     }
 
-    // ----------------------- General Field Update -----------------------
+    // ----------------------- General -----------------------
 
     public void updateField(String collectionName, String documentId, String fieldName, Object value) {
         Map<String, Object> updates = new HashMap<>();
@@ -283,6 +291,34 @@ public class FirebaseService {
             System.out.println(collectionName + " field '" + fieldName + "' updated successfully for ID: " + documentId);
         } catch (Exception e) {
             System.err.println("Error updating " + collectionName + " field '" + fieldName + "': " + e.getMessage());
+        }
+    }
+
+    public boolean documentExists(String collectionName, String documentId) {
+        try {
+            DocumentSnapshot snapshot = getFirestore()
+                    .collection(collectionName)
+                    .document(documentId)
+                    .get()
+                    .get();
+            return snapshot.exists();
+        } catch (Exception e) {
+            System.err.println("Error checking existence of document in " + collectionName + " with ID: " + documentId);
+            return false;
+        }
+    }
+
+    public Map<String, Object> getDocumentById(String collectionName, String documentId) {
+        try {
+            DocumentSnapshot snapshot = getFirestore()
+                    .collection(collectionName)
+                    .document(documentId)
+                    .get()
+                    .get();
+            return snapshot.exists() ? snapshot.getData() : null;
+        } catch (Exception e) {
+            System.err.println("Error retrieving document in " + collectionName + " with ID: " + documentId);
+            return null;
         }
     }
 }

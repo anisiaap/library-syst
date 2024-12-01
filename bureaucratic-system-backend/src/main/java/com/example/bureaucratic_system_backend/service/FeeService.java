@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
 @Service
 public class FeeService {
 
@@ -35,10 +34,24 @@ public class FeeService {
 
         lock.lock();
         try {
+            // Check if fee ID already exists (uniqueness check)
+            if (firebaseService.documentExists("fees", fee.getId())) {
+                throw new IllegalArgumentException("Fee with ID " + fee.getId() + " already exists.");
+            }
+
+            // Validate foreign keys (e.g., membershipId, borrowId)
+            if (!firebaseService.documentExists("memberships", fee.getMembershipId())) {
+                throw new IllegalArgumentException("Membership with ID " + fee.getMembershipId() + " does not exist.");
+            }
+            if (!firebaseService.documentExists("borrows", fee.getBorrowId())) {
+                throw new IllegalArgumentException("Borrow record with ID " + fee.getBorrowId() + " does not exist.");
+            }
+
             firebaseService.addFee(fee);
             logger.info("Fee added successfully: {}", fee);
         } catch (Exception e) {
             logger.error("Error adding fee: {}", e.getMessage());
+            throw new RuntimeException(e.getMessage(), e);
         } finally {
             lock.unlock();
         }
@@ -51,24 +64,31 @@ public class FeeService {
 
         lock.lock();
         try {
+            // Validate that the borrow ID exists
             Borrows borrow = firebaseService.getBorrowById(borrowId);
             if (borrow == null) {
-                logger.warn("Borrow record not found for borrow ID: {}", borrowId);
-                return;
+                throw new IllegalArgumentException("Borrow record not found for borrow ID: " + borrowId);
             }
 
+            // Validate that the book has been returned
             if (borrow.getReturnDate() == null) {
-                logger.warn("Book not returned yet for borrow ID: {}", borrowId);
-                return;
+                throw new IllegalArgumentException("Book not returned yet for borrow ID: " + borrowId);
             }
 
+            // Calculate overdue fee
             LocalDate dueDate = LocalDate.parse(borrow.getDueDate());
             LocalDate returnDate = LocalDate.parse(borrow.getReturnDate());
-
             long overdueDays = ChronoUnit.DAYS.between(dueDate, returnDate);
+
             if (overdueDays > 0) {
                 String amount = String.valueOf(overdueDays * 1); // Example: $1 per day
                 Fees fee = new Fees(borrowId, borrow.getMembershipId(), amount, borrowId, "false");
+
+                // Check if fee ID already exists (reuse borrowId as fee ID)
+                if (firebaseService.documentExists("fees", fee.getId())) {
+                    throw new IllegalArgumentException("Overdue fee for borrow ID " + borrowId + " already exists.");
+                }
+
                 firebaseService.addFee(fee);
                 logger.info("Overdue fee generated: $ {} for borrow ID: {}", amount, borrowId);
             } else {
@@ -76,6 +96,7 @@ public class FeeService {
             }
         } catch (Exception e) {
             logger.error("Error generating overdue fee for borrow ID: {}: {}", borrowId, e.getMessage());
+            throw new RuntimeException(e.getMessage(), e);
         } finally {
             lock.unlock();
         }
@@ -88,16 +109,18 @@ public class FeeService {
 
         lock.lock();
         try {
+            // Validate that the fee exists
             Fees fee = firebaseService.getFeeById(feeId);
-            if (fee != null) {
-                fee.setPaid("true");
-                firebaseService.updateFee(feeId, fee);
-                logger.info("Fee marked as paid for fee ID: {}", feeId);
-            } else {
-                logger.warn("Fee not found for fee ID: {}", feeId);
+            if (fee == null) {
+                throw new IllegalArgumentException("Fee not found for fee ID: " + feeId);
             }
+
+            fee.setPaid("true");
+            firebaseService.updateFee(feeId, fee);
+            logger.info("Fee marked as paid for fee ID: {}", feeId);
         } catch (Exception e) {
             logger.error("Error marking fee as paid for fee ID: {}: {}", feeId, e.getMessage());
+            throw new RuntimeException(e.getMessage(), e);
         } finally {
             lock.unlock();
         }
@@ -110,10 +133,16 @@ public class FeeService {
 
         lock.lock();
         try {
+            // Validate that the fee exists
+            if (!firebaseService.documentExists("fees", feeId)) {
+                throw new IllegalArgumentException("Fee not found for fee ID: " + feeId);
+            }
+
             firebaseService.deleteFee(feeId);
             logger.info("Fee deleted successfully for fee ID: {}", feeId);
         } catch (Exception e) {
             logger.error("Error deleting fee for fee ID: {}: {}", feeId, e.getMessage());
+            throw new RuntimeException(e.getMessage(), e);
         } finally {
             lock.unlock();
         }
@@ -122,10 +151,14 @@ public class FeeService {
     // Retrieve a fee by borrow ID
     public Fees getFeeByBorrowId(String borrowId) {
         try {
-            return firebaseService.getFeeByBorrowId(borrowId);
+            Fees fee = firebaseService.getFeeByBorrowId(borrowId);
+            if (fee == null) {
+                logger.warn("No fee found for borrow ID: {}", borrowId);
+            }
+            return fee;
         } catch (Exception e) {
             logger.error("Error retrieving fee for borrow ID: {}: {}", borrowId, e.getMessage());
-            return null;
+            throw new RuntimeException(e.getMessage(), e);
         }
     }
 }
