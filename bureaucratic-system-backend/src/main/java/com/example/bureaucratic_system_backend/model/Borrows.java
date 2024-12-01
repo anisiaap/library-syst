@@ -20,6 +20,10 @@ public class Borrows {
         this.returnDate = returnDate;
     }
 
+    public Borrows() {
+
+    }
+
     // Getters and setters
 
     public String getId() {

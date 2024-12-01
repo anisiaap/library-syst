@@ -32,6 +32,9 @@ public class ApiController {
     @Autowired
     private FirebaseService firebaseService;
 
+    // moved this endpoint to the admin controller, as we need the endpoint to be under admin
+
+    /*
     @GetMapping("/books")
     public ResponseEntity<List<Book>> getAllBooks() {
         try {
@@ -42,6 +45,7 @@ public class ApiController {
             return ResponseEntity.status(500).body(null); // Internal Server Error
         }
     }
+    */
 
     @PostMapping("/loan-request")
     public ResponseEntity<String> processLoanRequest(@RequestBody LoanRequest loanRequest) {
