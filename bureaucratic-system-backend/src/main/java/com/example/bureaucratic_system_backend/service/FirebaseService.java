@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class FirebaseService {
@@ -22,6 +23,24 @@ public class FirebaseService {
     }
     public void assignRole(String userId, String role) throws Exception {
         FirebaseAuth.getInstance().setCustomUserClaims(userId, Map.of("role", role));
+    }
+    public Map<String, Object> getUserByEmail(String email) {
+        System.out.println("Querying Firestore for email: " + email);
+        try {
+            ApiFuture<QuerySnapshot> query = getFirestore()
+                    .collection("users")
+                    .whereEqualTo("email", email)
+                    .get();
+            List<QueryDocumentSnapshot> documents = query.get().getDocuments();
+            if (documents.isEmpty()) {
+                System.out.println("No user found for email: " + email);
+                return null;
+            }
+            return documents.get(0).getData();
+        } catch (Exception e) {
+            System.err.println("Error fetching user by email: " + e.getMessage());
+            return null;
+        }
     }
 
     // ----------------------- Memberships -----------------------
@@ -66,37 +85,6 @@ public class FirebaseService {
     }
 
     // ----------------------- Books -----------------------
-
-//    public static boolean borrowBook(String bookId, String membershipId) {
-//        DocumentReference bookRef = getFirestore().collection("books").document(bookId);
-//        CollectionReference borrowCollection = getFirestore().collection("borrows");
-//
-//        Map<String, Object> bookUpdates = new HashMap<>();
-//        Map<String, Object> borrowData = new HashMap<>();
-//        bookUpdates.put("available", false);
-//        borrowData.put("membershipId", membershipId);
-//        borrowData.put("bookId", bookId);
-//        borrowData.put("borrowDate", LocalDate.now().toString());
-//        borrowData.put("dueDate", LocalDate.now().plusDays(30).toString());
-//
-//        try {
-//            // Update the book's availability
-//            WriteResult bookResult = bookRef.update(bookUpdates).get();
-//
-//            // Create a new borrow record with an auto-generated ID
-//            DocumentReference newBorrowRef = borrowCollection.document(); // Auto-generated ID instead of book id to avoid overwriting
-//            borrowData.put("id", newBorrowRef.getId()); // store the generated ID in the borrow record
-//            WriteResult borrowResult = newBorrowRef.set(borrowData).get();
-//
-//            System.out.println("Book borrowed successfully: " + bookResult.getUpdateTime() +
-//                    ", Borrow record created with ID: " + newBorrowRef.getId());
-//            return true;
-//        } catch (Exception e) {
-//            System.err.println("Error borrowing book: " + e.getMessage());
-//            return false;
-//        }
-//    }
-
 
     public static Book getBookByTitleAndAuthor(String title, String author) {
         try {
@@ -217,14 +205,12 @@ public class FirebaseService {
         }
     }
 
+    // Fetch all fees by membership ID
     public List<Fees> getFeesByMembershipId(String membershipId) {
         try {
-            // Query Firestore for documents with the specific membership ID
             ApiFuture<QuerySnapshot> query = getFirestore().collection("fees")
-                    .whereEqualTo("membershipId", membershipId).get(); // Match "membershipId" field
+                    .whereEqualTo("membershipId", membershipId).get();
             List<QueryDocumentSnapshot> documents = query.get().getDocuments();
-
-            // Convert each document to a Fees object and return as a list
             List<Fees> feesList = new ArrayList<>();
             for (QueryDocumentSnapshot document : documents) {
                 feesList.add(document.toObject(Fees.class));
@@ -232,7 +218,7 @@ public class FirebaseService {
             return feesList;
         } catch (Exception e) {
             System.err.println("Error fetching fees by membership ID: " + e.getMessage());
-            return new ArrayList<>(); // Return an empty list if an error occurs
+            return new ArrayList<>();
         }
     }
 
@@ -256,7 +242,22 @@ public class FirebaseService {
             System.err.println("Error adding borrow record: " + e.getMessage());
         }
     }
-
+    // Fetch all borrows by membership ID
+    public List<Borrows> getBorrowsByMembershipId(String membershipId) {
+        try {
+            ApiFuture<QuerySnapshot> query = getFirestore().collection("borrows")
+                    .whereEqualTo("membershipId", membershipId).get();
+            List<QueryDocumentSnapshot> documents = query.get().getDocuments();
+            List<Borrows> borrowsList = new ArrayList<>();
+            for (QueryDocumentSnapshot document : documents) {
+                borrowsList.add(document.toObject(Borrows.class));
+            }
+            return borrowsList;
+        } catch (Exception e) {
+            System.err.println("Error fetching borrows by membership ID: " + e.getMessage());
+            return new ArrayList<>();
+        }
+    }
     public Borrows getBorrowById(String borrowId) {
         try {
             DocumentSnapshot snapshot = getFirestore().collection("borrows").document(borrowId).get().get();
@@ -360,5 +361,29 @@ public class FirebaseService {
             System.err.println("Error retrieving document in " + collectionName + " with ID: " + documentId);
             return null;
         }
+    }
+    public List<Map<String, Object>> getAllBooksGroupedByAuthorAndName() {
+        // Fetch all books from Firestore
+        List<Book> books = getAllBooksFromFirestore();
+
+        // Group books by name and author, and calculate total available pieces
+        return books.stream()
+                .filter(Book::isAvailable) // Only include available books
+                .collect(Collectors.groupingBy(
+                        book -> Map.of("name", (Object) book.getName(), "author", (Object) book.getAuthor()), // Cast to Object
+                        Collectors.counting() // Count available books in each group
+                ))
+                .entrySet()
+                .stream()
+                .map(entry -> {
+                    Map<String, Object> key = entry.getKey();
+                    long totalPieces = entry.getValue();
+                    return Map.of(
+                            "name", key.get("name"),
+                            "author", key.get("author"),
+                            "totalPieces", totalPieces
+                    );
+                })
+                .toList();
     }
 }

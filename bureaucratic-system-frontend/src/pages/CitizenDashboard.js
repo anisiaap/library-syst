@@ -167,7 +167,7 @@ const CitizenDashboard = () => {
                                         <strong>Fee ID:</strong> {fee.id} <br />
                                         <strong>Amount:</strong> {fee.amount} <br />
                                         <strong>Borrow ID:</strong> {fee.borrowId} <br />
-                                        <strong>Paid:</strong> {fee.paid ? 'Yes' : 'No'}
+                                        <strong>Paid:</strong> {fee.paid}
                                     </li>
                                 ))}
                             </ul>

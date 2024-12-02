@@ -1,6 +1,8 @@
 package com.example.bureaucratic_system_backend.controller;
 
 import com.example.bureaucratic_system_backend.model.Book;
+import com.example.bureaucratic_system_backend.model.Borrows;
+import com.example.bureaucratic_system_backend.model.Fees;
 import com.example.bureaucratic_system_backend.model.Membership;
 import com.example.bureaucratic_system_backend.service.FirebaseService;
 import com.google.firebase.auth.FirebaseAuth;
@@ -20,57 +22,58 @@ public class FirebaseController {
 
     private final FirebaseService firebaseService;
 
+
     public FirebaseController(FirebaseService firebaseService) {
         this.firebaseService = firebaseService;
     }
 
     @GetMapping("/memberships/{citizenId}")
     public String getMembershipIdById(@PathVariable String citizenId) {
-        return firebaseService.getMembershipIdById(citizenId);
-    }
-
-//    @PostMapping("/books/{bookId}/borrow")
-//    public boolean borrowBook(@PathVariable String bookId, @RequestParam String membershipId) {
-//        return firebaseService.borrowBook(bookId, membershipId);
-//    }
-    // Extract role from token
-    private String extractRoleFromToken(String token) throws Exception {
-        FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(token.replace("Bearer ", ""));
-        return (String) decodedToken.getClaims().get("role");
+        return FirebaseService.getMembershipIdById(citizenId);
     }
     // Enhanced /books endpoint
+
     @GetMapping("/books")
-     public List<Map<String, Object>> getAllBooks(){
-
-            // Fetch all books from Firestore
-            List<Book> books = firebaseService.getAllBooksFromFirestore();
-
-            // Group books by name and author, and calculate total available pieces
-            List<Map<String, Object>> groupedBooks = books.stream()
-                    .filter(Book::isAvailable) // Only include available books
-                    .collect(Collectors.groupingBy(
-                            book -> Map.of("name", (Object) book.getName(), "author", (Object) book.getAuthor()), // Cast to Object
-                            Collectors.counting() // Count available books in each group
-                    ))
-                    .entrySet()
-                    .stream()
-                    .map(entry -> {
-                        Map<String, Object> key = entry.getKey();
-                        long totalPieces = entry.getValue();
-                        return Map.of(
-                                "name", key.get("name"),
-                                "author", key.get("author"),
-                                "totalPieces", totalPieces
-                        );
-                    })
-                    .toList();
-
-
-            return groupedBooks;
+    public ResponseEntity<List<Map<String, Object>>> getAllBooks() {
+        List<Map<String, Object>> groupedBooks = firebaseService.getAllBooksGroupedByAuthorAndName();
+        return ResponseEntity.ok(groupedBooks);
     }
     @PostMapping("/memberships")
     public void addMembership(@RequestBody Membership membership) {
         firebaseService.addMembership(membership);
     }
+    @GetMapping("/borrows/{membershipId}")
+    public ResponseEntity<List<Borrows>> getBorrowsByMembershipId(@PathVariable String membershipId) {
+        try {
 
+            List<Borrows> borrowsList = firebaseService.getBorrowsByMembershipId(membershipId);
+            return ResponseEntity.ok(borrowsList);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(null);
+        }
+    }
+    @GetMapping("/users/{email}")
+    public ResponseEntity<?> getUserByEmail(@PathVariable String email) {
+        try {
+            // Use FirebaseService to fetch user data by email
+            Map<String, Object> user = firebaseService.getUserByEmail(email);
+            if (user == null) {
+                return ResponseEntity.status(404).body("User not found for email: " + email);
+            }
+            return ResponseEntity.ok(user);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error fetching user: " + e.getMessage());
+        }
+    }
+
+    // Fetch fees history by membership ID
+    @GetMapping("/fees/{membershipId}")
+    public ResponseEntity<List<Fees>> getFeesByMembershipId(@PathVariable String membershipId) {
+        try {
+            List<Fees> feesList = firebaseService.getFeesByMembershipId(membershipId);
+            return ResponseEntity.ok(feesList);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(null);
+        }
+    }
 }
