@@ -1,10 +1,12 @@
 package com.example.bureaucratic_system_backend.controller;
 
 import com.example.bureaucratic_system_backend.model.Citizen;
+import com.example.bureaucratic_system_backend.model.Fees;
 import com.example.bureaucratic_system_backend.model.LoanRequest;
 import com.example.bureaucratic_system_backend.service.BookLoaningService;
 import com.example.bureaucratic_system_backend.service.CitizenService;
 import com.example.bureaucratic_system_backend.service.EnrollmentDepartmentService;
+import com.example.bureaucratic_system_backend.service.FeeService;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseToken;
 import org.slf4j.Logger;
@@ -23,7 +25,8 @@ public class ApiController {
     private BookLoaningService bookLoaningService;
     @Autowired
     private CitizenService citizenService;
-
+    @Autowired
+    private FeeService feeService;
     @Autowired
     private EnrollmentDepartmentService enrollmentDepartmentService;
 
@@ -70,6 +73,31 @@ public class ApiController {
             return ResponseEntity.ok("Loan request processed successfully.");
         } catch (Exception e) {
             return ResponseEntity.status(401).body("Unauthorized");
+        }
+    }
+    @GetMapping("/fees/{borrowId}")
+    public ResponseEntity<?> getFeeByBorrowId(@RequestHeader("Authorization") String token, @PathVariable String borrowId) {
+        try {
+
+            Fees fee = feeService.getFeeByBorrowId(borrowId);
+            if (fee == null) {
+                return ResponseEntity.status(404).body("Fee not found for borrow ID: " + borrowId);
+            }
+
+            return ResponseEntity.ok(fee);
+        } catch (Exception e) {
+            logger.error("Error retrieving fee for borrow ID {}: {}", borrowId, e.getMessage());
+            return ResponseEntity.status(500).body("Internal server error.");
+        }
+    }
+    @PostMapping("/mark-as-paid")
+    public ResponseEntity<String> markFeeAsPaid(@RequestHeader("Authorization") String token, @RequestBody String feeId) {
+        try {
+            feeService.markFeeAsPaid(feeId);
+            return ResponseEntity.ok("Fee marked as paid successfully.");
+        } catch (Exception e) {
+            logger.error("Error marking fee as paid for ID {}: {}", feeId, e.getMessage());
+            return ResponseEntity.status(500).body("Internal server error.");
         }
     }
 }

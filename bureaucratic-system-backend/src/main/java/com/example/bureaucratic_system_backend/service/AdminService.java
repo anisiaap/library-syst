@@ -34,14 +34,6 @@ public class AdminService {
 
     // ----------------------- Books Management -----------------------
 
-    public List<Book> getAllBooks() {
-        try {
-            return firebaseService.getAllBooksFromFirestore();
-        } catch (Exception e) {
-            logger.error("Error retrieving books", e.getMessage());
-            throw new RuntimeException("Error retrieving books: " + e.getMessage());
-        }
-    }
 
     public void addBook(Book book) {
         try {

@@ -24,7 +24,7 @@ const PayFee = () => {
 
         try {
             const response = await axios.get(
-                `http://localhost:8080/api/fees/${borrowId}`,
+                `http://localhost:8080/api/citizens/fees/${borrowId}`,
                 {
                     headers: {
                         Authorization: `Bearer ${role}`, // Use role as the token

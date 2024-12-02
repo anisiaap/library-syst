@@ -128,18 +128,6 @@ import java.util.Map;
 
         // ----------------------- Book Management -----------------------
 
-        @GetMapping("/books")
-        public ResponseEntity<?> getAllBooks(@RequestHeader("Authorization") String token) {
-            try {
-                if (!"admin".equals(extractRoleFromToken(token))) {
-                    return ResponseEntity.status(403).body("Access denied: Admins only.");
-                }
-
-                return ResponseEntity.ok(adminService.getAllBooks());
-            } catch (Exception e) {
-                return ResponseEntity.status(401).body("Unauthorized");
-            }
-        }
 
         @PostMapping("/add-book")
         public ResponseEntity<String> addBook(@RequestHeader("Authorization") String token, @RequestBody Book book) {
@@ -251,25 +239,6 @@ import java.util.Map;
             }
         }
 
-        @GetMapping("/fees/{borrowId}")
-        public ResponseEntity<?> getFeeByBorrowId(@RequestHeader("Authorization") String token, @PathVariable String borrowId) {
-            try {
-                // Check role-based access control
-                if (!"admin".equals(extractRoleFromToken(token))) {
-                    return ResponseEntity.status(403).body("Access denied: Admins only.");
-                }
-
-                Fees fee = feeService.getFeeByBorrowId(borrowId);
-                if (fee == null) {
-                    return ResponseEntity.status(404).body("Fee not found for borrow ID: " + borrowId);
-                }
-
-                return ResponseEntity.ok(fee);
-            } catch (Exception e) {
-                logger.error("Error retrieving fee for borrow ID {}: {}", borrowId, e.getMessage());
-                return ResponseEntity.status(500).body("Internal server error.");
-            }
-        }
 
         @PutMapping("/update-fee")
         public ResponseEntity<String> updateFee(@RequestHeader("Authorization") String token, @RequestBody Map<String, Object> updateRequest) {
@@ -307,37 +276,6 @@ import java.util.Map;
             }
         }
 
-        @PostMapping("/mark-fee-as-paid")
-        public ResponseEntity<String> markFeeAsPaid(@RequestHeader("Authorization") String token, @RequestBody Map<String, String> request) {
-            try {
-                // Check role-based access control
-                if (!"admin".equals(extractRoleFromToken(token))) {
-                    return ResponseEntity.status(403).body("Access denied: Admins only.");
-                }
 
-                String feeId = request.get("feeId");
-                feeService.markFeeAsPaid(feeId);
-                return ResponseEntity.ok("Fee marked as paid successfully.");
-            } catch (Exception e) {
-                logger.error("Error marking fee as paid: {}", e.getMessage());
-                return ResponseEntity.status(500).body("Internal server error.");
-            }
-        }
 
-        @PostMapping("/generate-overdue-fee")
-        public ResponseEntity<String> generateOverdueFee(@RequestHeader("Authorization") String token, @RequestBody Map<String, String> request) {
-            try {
-                // Check role-based access control
-                if (!"admin".equals(extractRoleFromToken(token))) {
-                    return ResponseEntity.status(403).body("Access denied: Admins only.");
-                }
-
-                String borrowId = request.get("borrowId");
-                feeService.generateOverdueFee(borrowId);
-                return ResponseEntity.ok("Overdue fee generated successfully.");
-            } catch (Exception e) {
-                logger.error("Error generating overdue fee for borrow ID {}: {}", request.get("borrowId"), e.getMessage());
-                return ResponseEntity.status(500).body("Internal server error.");
-            }
-        }
     }
