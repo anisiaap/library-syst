@@ -37,15 +37,45 @@ public class AdminService {
 
     public void addBook(Book book) {
         try {
+            // Fetch all existing book IDs
+            List<String> existingIds = firebaseService.getAllDocumentIds("books");
+
+            // Generate the next available ID
+            int nextId = generateNextId(existingIds);
+            book.setId(String.valueOf(nextId));
+
+            // Set 'available' to 'true'
+            book.setAvailable(true);
+
+            // Check if the book ID already exists (redundant due to ID generation but kept for safety)
             if (firebaseService.getDocumentById("books", book.getId()) != null) {
                 throw new IllegalArgumentException("Book with ID " + book.getId() + " already exists.");
             }
+
+            // Add the book to Firebase
             firebaseService.addBook(book);
             logger.info("Book added successfully: {}", book.getName());
         } catch (Exception e) {
-            logger.error("Error adding book", e.getMessage());
-            throw new RuntimeException("Error adding book: " + e.getMessage());
+            logger.error("Error adding book: {}", e.getMessage());
+            throw new RuntimeException("Error adding book: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Generates the next available numeric ID based on the list of existing IDs.
+     * Assumes IDs are numeric strings.
+     */
+    private int generateNextId(List<String> existingIds) {
+        int maxId = 0;
+        for (String id : existingIds) {
+            try {
+                int numericId = Integer.parseInt(id);
+                maxId = Math.max(maxId, numericId);
+            } catch (NumberFormatException e) {
+                logger.warn("Non-numeric ID found: {}. Ignoring it for ID generation.", id);
+            }
+        }
+        return maxId + 1; // Next ID is the max ID + 1
     }
 
     public void updateBookField(String bookId, String fieldName, Object value) {

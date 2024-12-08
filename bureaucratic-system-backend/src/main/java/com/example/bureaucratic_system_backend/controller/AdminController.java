@@ -15,6 +15,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation .*;
 
+import java.io.FileWriter;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -43,17 +45,30 @@ import java.util.Map;
         // ----------------------- Configuration -----------------------
 
         @PostMapping("/config")
-        public ResponseEntity<String> configureOffices(@RequestHeader("Authorization") String token, @RequestBody JsonObject configJson) {
+        public ResponseEntity<String> configureOffices(@RequestHeader("Authorization") String token, @RequestBody Map<String, String> configJson) {
             try {
-                if (!"admin".equals(extractRoleFromToken(token))) {
+                // Validate token and role
+                if (!"admin".equals(token)) {
                     return ResponseEntity.status(403).body("Access denied: Admins only.");
                 }
 
-                List<Office> offices = parseConfiguration(configJson);
-                return ResponseEntity.ok("Configuration received and loaded successfully");
+                // Extract configuration
+                String configText = configJson.get("config");
+                if (configText == null || configText.isBlank()) {
+                    return ResponseEntity.badRequest().body("Invalid configuration data.");
+                }
+
+                // Write to file
+                String filePath = "config/config.txt"; // Adjust path as necessary
+                try (FileWriter writer = new FileWriter(Paths.get(filePath).toFile())) {
+                    writer.write(configText);
+                }
+
+                logger.info("Configuration saved to {}", filePath);
+                return ResponseEntity.ok("Configuration received and saved successfully.");
             } catch (Exception e) {
                 logger.error("Error configuring offices: {}", e.getMessage());
-                return ResponseEntity.status(401).body("Unauthorized");
+                return ResponseEntity.status(500).body("An error occurred while processing the configuration.");
             }
         }
 
@@ -102,7 +117,7 @@ import java.util.Map;
 
         private ResponseEntity<String> handleCounterAction(String token, BreakTime breakTime, boolean isPauseAction) {
             try {
-                if (!"admin".equals(extractRoleFromToken(token))) {
+                if (!"admin".equals(token)) {
                     return ResponseEntity.status(403).body("Access denied: Admins only.");
                 }
 
@@ -132,10 +147,9 @@ import java.util.Map;
         @PostMapping("/add-book")
         public ResponseEntity<String> addBook(@RequestHeader("Authorization") String token, @RequestBody Book book) {
             try {
-                if (!"admin".equals(extractRoleFromToken(token))) {
+                if (!"admin".equals(token)) {
                     return ResponseEntity.status(403).body("Access denied: Admins only.");
                 }
-
                 adminService.addBook(book);
                 return ResponseEntity.ok("Book added successfully.");
             } catch (Exception e) {
@@ -146,7 +160,7 @@ import java.util.Map;
         @PutMapping("/update-book")
         public ResponseEntity<String> updateBook(@RequestHeader("Authorization") String token, @RequestBody Map<String, Object> updateRequest) {
             try {
-                if (!"admin".equals(extractRoleFromToken(token))) {
+                if (!"admin".equals(token)) {
                     return ResponseEntity.status(403).body("Access denied: Admins only.");
                 }
 
@@ -164,7 +178,7 @@ import java.util.Map;
         @DeleteMapping("/delete-book/{bookId}")
         public ResponseEntity<String> deleteBook(@RequestHeader("Authorization") String token, @PathVariable String bookId) {
             try {
-                if (!"admin".equals(extractRoleFromToken(token))) {
+                if (!"admin".equals(token)) {
                     return ResponseEntity.status(403).body("Access denied: Admins only.");
                 }
 

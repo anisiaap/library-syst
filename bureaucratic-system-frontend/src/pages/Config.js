@@ -1,23 +1,82 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import {useAuth} from "../components/AuthProvider";
 
 const Config = () => {
-  const [config, setConfig] = useState('');
+    const { role } = useAuth();
+    const [config, setConfig] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [success, setSuccess] = useState(null);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    axios.post('http://localhost:8080/api/admin/config', JSON.parse(config))
-      .then(() => alert('Configuration submitted!'))
-      .catch(err => alert('Error: ' + err.message));
-  };
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError(null);
+        setSuccess(null);
+        setLoading(true);
 
-  return (
-    <form onSubmit={handleSubmit}>
-      <h1>Configure Offices</h1>
-      <textarea placeholder="Configuration JSON" value={config} onChange={e => setConfig(e.target.value)} required />
-      <button type="submit">Submit</button>
-    </form>
-  );
+        try {
+            if (!/^counters=\d+$/.test(config.trim())) {
+                throw new Error('Invalid format. Use counters=number (e.g., counters=3).');
+            }
+
+            await axios.post(
+                'http://localhost:8080/api/admin/config',
+                { config: config.trim() },
+                {
+                    headers: {
+                        Authorization: `${role}`,
+                    },
+                }
+            );
+
+            setSuccess('Configuration updated successfully!');
+            setConfig('');
+        } catch (err) {
+            setError(err.message || 'Failed to submit configuration.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div
+            className="flex flex-col items-center justify-center min-h-screen"
+            style={{
+                background: 'linear-gradient(to bottom, white, #A87C5A)',
+            }}
+        >
+            <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-lg">
+                <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center">
+                    Configure Counters
+                </h1>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <textarea
+                        className="w-full h-20 p-4 border border-gray-300 rounded-lg shadow-sm focus:ring focus:ring-[#A87C5A]"
+                        placeholder="Enter configuration (e.g., counters=3)"
+                        value={config}
+                        onChange={(e) => setConfig(e.target.value)}
+                        required
+                    />
+                    {error && (
+                        <p className="text-red-500 text-center font-medium">{error}</p>
+                    )}
+                    {success && (
+                        <p className="text-green-500 text-center font-medium">{success}</p>
+                    )}
+                    <button
+                        type="submit"
+                        className={`w-full py-3 px-4 text-white font-semibold rounded-lg shadow-md ${
+                            loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#A87C5A] hover:bg-[#8B5E3C]'
+                        }`}
+                        disabled={loading}
+                    >
+                        {loading ? 'Submitting...' : 'Submit Configuration'}
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
 };
 
 export default Config;

@@ -49,7 +49,7 @@ public class ApiController {
     @PostMapping("/enroll")
     public ResponseEntity<String> enrollCitizen(@RequestHeader("Authorization") String token, @RequestBody Citizen citizen) {
         try {
-            if (!"citizen".equals(extractRoleFromToken(token))) {
+            if (!"citizen".equals(token)) {
                 return ResponseEntity.status(403).body("Access denied: citizen only.");
             }
 
@@ -78,6 +78,9 @@ public class ApiController {
     @GetMapping("/fees/{borrowId}")
     public ResponseEntity<?> getFeeByBorrowId(@RequestHeader("Authorization") String token, @PathVariable String borrowId) {
         try {
+            if (!"citizen".equals(token)) {
+                return ResponseEntity.status(403).body("Access denied: citizen only.");
+            }
 
             Fees fee = feeService.getFeeByBorrowId(borrowId);
             if (fee == null) {
@@ -90,13 +93,16 @@ public class ApiController {
             return ResponseEntity.status(500).body("Internal server error.");
         }
     }
-    @PostMapping("/mark-as-paid")
-    public ResponseEntity<String> markFeeAsPaid(@RequestHeader("Authorization") String token, @RequestBody String feeId) {
+    @PostMapping("/mark-as-paid/{borrowId}")
+    public ResponseEntity<String> markFeeAsPaid(@RequestHeader("Authorization") String token, @PathVariable String borrowId) {
         try {
-            feeService.markFeeAsPaid(feeId);
+            if (!"citizen".equals(token)) {
+                return ResponseEntity.status(403).body("Access denied: citizen only.");
+            }
+            feeService.markFeeAsPaid(borrowId);
             return ResponseEntity.ok("Fee marked as paid successfully.");
         } catch (Exception e) {
-            logger.error("Error marking fee as paid for ID {}: {}", feeId, e.getMessage());
+            logger.error("Error marking fee as paid for ID {}: {}", borrowId, e.getMessage());
             return ResponseEntity.status(500).body("Internal server error.");
         }
     }

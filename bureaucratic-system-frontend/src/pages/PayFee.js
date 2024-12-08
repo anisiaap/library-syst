@@ -27,7 +27,7 @@ const PayFee = () => {
                 `http://localhost:8080/api/citizens/fees/${borrowId}`,
                 {
                     headers: {
-                        Authorization: `Bearer ${role}`, // Use role as the token
+                        Authorization: `${role}`, // Use role as the token
                     },
                 }
             );
@@ -50,12 +50,12 @@ const PayFee = () => {
         setSuccess(null);
 
         try {
-            const response = await axios.post(
-                `http://localhost:8080/api/fees/pay`,
-                { feeId: feeDetails.id },
+            await axios.post(
+                `http://localhost:8080/api/citizens/mark-as-paid/${borrowId}`,
+                {}, // Empty body since no additional data is required
                 {
                     headers: {
-                        Authorization: `Bearer ${role}`,
+                        Authorization: `${role}`,
                     },
                 }
             );
