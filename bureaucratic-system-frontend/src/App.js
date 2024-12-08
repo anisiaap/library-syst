@@ -18,7 +18,9 @@ import CitizenDashboard from "./pages/CitizenDashboard";
 import { AuthProvider } from './components/AuthProvider.js';
 import ReturnRequest from "./pages/ReturnBook";
 import PayFee from "./pages/PayFee";
-import AdminDashboard from "./pages/AdminDashboard"; // AuthProvider for managing authentication
+import AdminDashboard from "./pages/AdminDashboard";
+import BooksAdmin from "./pages/BooksAdmin";
+import Counters from "./pages/Counters"; // AuthProvider for managing authentication
 
 function App() {
     return (
@@ -46,6 +48,22 @@ function App() {
                             element={
                                 <ProtectedRoute allowedRoles={['admin', 'citizen']}>
                                     <Books />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/counters-page"
+                            element={
+                                <ProtectedRoute allowedRoles={['admin']}>
+                                    <Counters />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/books-admin"
+                            element={
+                                <ProtectedRoute allowedRoles={['admin']}>
+                                    <BooksAdmin />
                                 </ProtectedRoute>
                             }
                         />

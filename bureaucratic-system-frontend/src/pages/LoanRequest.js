@@ -63,8 +63,8 @@ const LoanRequest = () => {
                     bookAuthor,
                 },{
                     headers: {
-                        Authorization: `${role}`, // Use the role as the token
-                    }, 
+                        Authorization: `${role}`, // Use Bearer if required
+                    }
                 },
             );
             alert('Request submitted: ' + response.data);

@@ -103,28 +103,45 @@ public class FeeService {
     }
 
     // Mark a fee as paid
-    public void markFeeAsPaid(String feeId) {
-        feeLocks.putIfAbsent(feeId, new ReentrantLock());
-        Lock lock = feeLocks.get(feeId);
+    public void markFeeAsPaid(String borrowId) {
+        logger.debug("Starting to mark fee as paid. Borrow ID: {}", borrowId);
+
+        Fees fee = getFeeByBorrowId(borrowId);
+        if (fee == null) {
+            logger.error("No fee found for borrow ID: {}", borrowId);
+            throw new IllegalArgumentException("Fee not found for borrow ID: " + borrowId);
+        }
+
+        feeLocks.putIfAbsent(fee.getId(), new ReentrantLock());
+        Lock lock = feeLocks.get(fee.getId());
+
+        logger.debug("Acquired lock for fee ID: {}", fee.getId());
 
         lock.lock();
         try {
-            // Validate that the fee exists
-            Fees fee = firebaseService.getFeeById(feeId);
-            if (fee == null) {
-                throw new IllegalArgumentException("Fee not found for fee ID: " + feeId);
+            // Fetch fee details from Firebase
+            Fees fetchedFee = firebaseService.getFeeById(fee.getId());
+            if (fetchedFee == null) {
+                logger.error("Fee record not found in Firebase for fee ID: {}", fee.getId());
+                throw new IllegalArgumentException("Fee record not found for fee ID: " + fee.getId());
             }
 
-            fee.setPaid("true");
-            firebaseService.updateFee(feeId, fee);
-            logger.info("Fee marked as paid for fee ID: {}", feeId);
+            logger.debug("Fetched fee details: {}", fetchedFee);
+
+            // Update fee to mark as paid
+            fetchedFee.setPaid("true");
+            firebaseService.updateFee(fee.getId(), fetchedFee);
+
+            logger.info("Fee successfully marked as paid. Fee ID: {}, Borrow ID: {}", fee.getId(), borrowId);
         } catch (Exception e) {
-            logger.error("Error marking fee as paid for fee ID: {}: {}", feeId, e.getMessage());
-            throw new RuntimeException(e.getMessage(), e);
+            logger.error("Error marking fee as paid. Fee ID: {}, Borrow ID: {}, Error: {}", fee.getId(), borrowId, e.getMessage());
+            throw new RuntimeException("Failed to mark fee as paid: " + e.getMessage(), e);
         } finally {
             lock.unlock();
+            logger.debug("Released lock for fee ID: {}", fee.getId());
         }
     }
+
 
     // Delete a fee
     public void deleteFee(String feeId) {

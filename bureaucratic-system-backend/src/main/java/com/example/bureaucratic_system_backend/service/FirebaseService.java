@@ -6,6 +6,8 @@ import com.google.cloud.firestore.*;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseToken;
 import com.google.firebase.cloud.FirestoreClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -17,6 +19,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class FirebaseService {
+    private static final Logger logger = LoggerFactory.getLogger(FirebaseService.class);
 
     private static Firestore getFirestore() {
         return FirestoreClient.getFirestore();
@@ -106,6 +109,22 @@ public class FirebaseService {
             System.out.println("Book added successfully: " + book.getName());
         } catch (Exception e) {
             System.err.println("Error adding book: " + e.getMessage());
+        }
+    }
+    public List<String> getAllDocumentIds(String collectionName) {
+        Firestore firestore = FirestoreClient.getFirestore();
+
+        try {
+            return firestore.collection(collectionName)
+                    .get()
+                    .get()
+                    .getDocuments()
+                    .stream()
+                    .map(QueryDocumentSnapshot::getId) // Extract the document IDs
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            logger.error("Error fetching document IDs from collection {}: {}", collectionName, e.getMessage());
+            throw new RuntimeException("Failed to fetch document IDs: " + e.getMessage(), e);
         }
     }
 

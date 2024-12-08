@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { auth } from '../firebaseconfig'; // Firebase Auth
-import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore'; // Firestore
+import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
+import {useAuth} from "../components/AuthProvider"; // Firestore
 
 const Enroll = () => {
     const [id, setId] = useState('');
     const [name, setName] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-
+    const { role } = useAuth(); // Get the user and role from AuthContext
     const db = getFirestore();
 
     // Fetch citizen data for autofill
@@ -47,7 +48,11 @@ const Enroll = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.post('http://localhost:8080/api/citizens/enroll', { id, name });
+            await axios.post('http://localhost:8080/api/citizens/enroll', { id, name }, {
+                headers: {
+                    Authorization: `${role}`, // Use the role as the token
+                }
+            });
             alert('Citizen enrolled successfully!');
         } catch (err) {
             alert('Error: ' + err.message);

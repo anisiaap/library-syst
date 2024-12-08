@@ -9,9 +9,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
-import java.util.Queue;
-import java.util.UUID;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.Lock;
@@ -25,34 +26,54 @@ public class BookLoaningService implements Department {
 
     private final Queue<LoanRequest> queue = new LinkedBlockingQueue<>();
     private final Map<String, Lock> bookLocks = new ConcurrentHashMap<>();
-    private final Thread counter1;
     private static BookLoaningService instance;
-    private final Thread counter2;
+
+    private final List<Thread> counters = new ArrayList<>();
+    private final BorrowService borrowService;
+    private final Object globalPauseLock = new Object();
+    private volatile boolean globalPause = false;
     private volatile boolean counter1Paused = false;
     private volatile boolean counter2Paused = false;
-    private final BorrowService borrowService;
+
+    private final Map<Integer, Boolean> counterPauseStatus = new ConcurrentHashMap<>();
+    private final Map<Integer, Object> counterLocks = new ConcurrentHashMap<>();
+
 
     public BookLoaningService(BorrowService borrowService) {
-
-
-        counter1 = new Thread(() -> processQueue(1));
-        counter2 = new Thread(() -> processQueue(2));
-        counter1.start();
-        counter2.start();
         this.borrowService = borrowService;
-        logger.info("BookLoaningService initialized. Counters started.");
+        int numberOfCounters = readCounterConfig();
+        initializeCounters(numberOfCounters);
+        logger.info("BookLoaningService initialized with {} counters.", numberOfCounters);
     }
-//    public static synchronized BookLoaningService getInstance() {
-//
-//        if (instance == null) {
-//            instance = new BookLoaningService();
-//        }
-//        return instance;
-//    }
+
+    private int readCounterConfig() {
+        try (BufferedReader reader = new BufferedReader(new FileReader("/Users/anisiapirvulescu/Desktop/cebp/bureaucratic-system-backend/src/main/java/com/example/bureaucratic_system_backend/config/config.txt"))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.startsWith("counters=")) {
+                    return Integer.parseInt(line.split("=")[1].trim());
+                }
+            }
+        } catch (IOException | NumberFormatException e) {
+            logger.error("Error reading configuration file. Defaulting to 2 counters.", e);
+        }
+        return 2; // Default number of counters
+    }
+
+    private void initializeCounters(int numberOfCounters) {
+        for (int i = 1; i <= numberOfCounters; i++) {
+            final int counterId = i;
+            counterPauseStatus.put(counterId, false);
+            counterLocks.put(counterId, new Object());
+            Thread counterThread = new Thread(() -> processQueue(counterId));
+            counters.add(counterThread);
+            counterThread.start();
+        }
+    }
 
     public void addCitizenToQueue(Citizen citizen, String bookTitle, String bookAuthor) {
         synchronized (queue) {
-            queue.add(new LoanRequest(bookTitle,bookAuthor,citizen.getId()));
+            queue.add(new LoanRequest(bookTitle, bookAuthor, citizen.getId()));
             queue.notifyAll();
             logger.info("Added citizen with ID {} to the queue for book '{}' by '{}'.", citizen.getId(), bookTitle, bookAuthor);
         }
@@ -61,22 +82,10 @@ public class BookLoaningService implements Department {
     private void processQueue(int counterId) {
         while (true) {
             try {
-                final Object pauseLock = (counterId == 1) ? counter1 : counter2;
-                synchronized (pauseLock) {
-                    // Wait if the specific counter is paused
-                    while ((counterId == 1 && counter1Paused) || (counterId == 2 && counter2Paused)) {
-                        System.out.println("Counter " + counterId + " is paused, waiting...");
-                        pauseLock.wait();
-                    }
-                }
-
-                // Check for the global pause condition when both counters are paused
-                synchronized (this) {
-                    // If both counters are paused, wait on the global object
-                    if (counter1Paused && counter2Paused) {
-                        System.out.println("Both counters are paused, waiting...");
-                        this.wait();
-                        continue; // After being notified, check the pause condition again
+                synchronized (counterLocks.get(counterId)) {
+                    while (counterPauseStatus.get(counterId)) {
+                        logger.info("Counter {} is paused. Waiting...", counterId);
+                        counterLocks.get(counterId).wait();
                     }
                 }
 
@@ -87,20 +96,17 @@ public class BookLoaningService implements Department {
                     }
                 }
 
-                // If a request is available, process it
                 if (request != null) {
                     tryToBorrowBook(request.getCitizenId(), request.getBookTitle(), request.getBookAuthor());
                 } else {
-                    // If the queue is empty, wait for new requests
                     synchronized (queue) {
-                        System.out.println("Queue is empty, waiting for requests...");
                         queue.wait();
                     }
                 }
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt(); // Restore interruption status
-                System.out.println("Thread interrupted: " + counterId);
-                return; // Optionally return to end the thread or handle interruption appropriately
+                Thread.currentThread().interrupt();
+                logger.warn("Counter {} interrupted. Exiting...", counterId);
+                return;
             }
         }
     }
@@ -138,27 +144,24 @@ public class BookLoaningService implements Department {
 
     @Override
     public void pauseCounter(int counterId) {
-        if (counterId == 1) {
-            counter1Paused = true;
-        } else if (counterId == 2) {
-            counter2Paused = true;
+        if (counterPauseStatus.containsKey(counterId)) {
+            counterPauseStatus.put(counterId, true);
+            logger.info("Paused counter {}.", counterId);
+        } else {
+            logger.warn("Counter {} does not exist. Unable to pause.", counterId);
         }
-        logger.info("Paused counter {}.", counterId);
     }
 
     @Override
     public void resumeCounter(int counterId) {
-        if (counterId == 1) {
-            counter1Paused = false;
-            synchronized (counter1) {
-                counter1.notify();
+        if (counterPauseStatus.containsKey(counterId)) {
+            counterPauseStatus.put(counterId, false);
+            synchronized (counterLocks.get(counterId)) {
+                counterLocks.get(counterId).notify();
             }
-        } else if (counterId == 2) {
-            counter2Paused = false;
-            synchronized (counter2) {
-                counter2.notify();
-            }
+            logger.info("Resumed counter {}.", counterId);
+        } else {
+            logger.warn("Counter {} does not exist. Unable to resume.", counterId);
         }
-        logger.info("Resumed counter {}.", counterId);
     }
 }

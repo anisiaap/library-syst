@@ -59,7 +59,8 @@ const Navbar = () => {
     ...(userRole === 'admin'
         ? [
           { name: 'Config', to: '/config', icon: Settings },
-          { name: 'Books', to: '/books', icon: Book },
+          { name: 'Books', to: '/books-admin', icon: Book },
+          { name: 'Counters', to: '/counters-page', icon: Book },
         ]
         : []),
     ...(userRole === 'citizen'
