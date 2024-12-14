@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import {useAuth} from "../components/AuthProvider";
+import { useAuth } from "../components/AuthProvider";
+import { getFirestore, collection, getDocs } from 'firebase/firestore';
 
 const Config = () => {
     const { role } = useAuth();
@@ -8,6 +9,25 @@ const Config = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
+    const [currentCounters, setCurrentCounters] = useState(null); // For current counter count
+
+    const db = getFirestore();
+
+    // Fetch the current number of counters from Firestore
+    useEffect(() => {
+        const fetchCurrentCounters = async () => {
+            try {
+                const countersCollection = collection(db, 'counters');
+                const snapshot = await getDocs(countersCollection);
+                setCurrentCounters(snapshot.size); // Count documents
+            } catch (err) {
+                console.error('Error fetching current counters:', err);
+                setCurrentCounters('Error'); // Show error if fetching fails
+            }
+        };
+
+        fetchCurrentCounters();
+    }, [db]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -50,6 +70,14 @@ const Config = () => {
                 <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center">
                     Configure Counters
                 </h1>
+
+                {/* Show Current Counter Count */}
+                <div className="mb-4 text-center">
+                    <p className="text-gray-700 font-medium">
+                        Current Number of Counters: {currentCounters !== null ? currentCounters : 'Loading...'}
+                    </p>
+                </div>
+
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <textarea
                         className="w-full h-20 p-4 border border-gray-300 rounded-lg shadow-sm focus:ring focus:ring-[#A87C5A]"

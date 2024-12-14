@@ -7,22 +7,26 @@ import { AuthProvider } from './components/AuthProvider.js';
 import BooksPage from "./pages/Books";
 import UsersPage from "./pages/Users";
 import RevenuePage from "./pages/Revenue";
+import StatisticsNavbar from './components/StatisticsNavBar'; // Import the Navbar
 
 function App() {
     return (
         <AuthProvider>
             {/* Background with Particles */}
             <ParticlesBackground />
+
             <div className="flex flex-col min-h-screen relative z-10 from-blue-500 to-purple-600 text-black">
+                {/* Navbar */}
+                <StatisticsNavbar />
 
                 {/* Main Content Area */}
                 <main className="flex-grow">
                     <Routes>
                         {/* Public Routes */}
                         <Route path="/" element={<WelcomePage />} />
-                        <Route path="/users" element={<UsersPage />}/>
+                        <Route path="/users" element={<UsersPage />} />
                         <Route path="/books" element={<BooksPage />} />
-                        <Route path="/revenue" element={<RevenuePage />}/>
+                        <Route path="/revenue" element={<RevenuePage />} />
 
                         {/* 404 Not Found Route */}
                         <Route path="*" element={<NotFoundPage />} />

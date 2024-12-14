@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Book, Home, FileText, UserPlus, Settings, Menu, X } from 'lucide-react';
+import { Book, Home, FileText, UserPlus, Settings, Menu, X, BarChart2 } from 'lucide-react';
 import { auth } from '../firebaseconfig'; // Firebase Auth
 import { signOut, onAuthStateChanged } from 'firebase/auth'; // Firebase Logout
 import { getFirestore, doc, getDoc } from 'firebase/firestore'; // Firestore
@@ -61,6 +61,12 @@ const Navbar = () => {
           { name: 'Config', to: '/config', icon: Settings },
           { name: 'Books', to: '/books-admin', icon: Book },
           { name: 'Counters', to: '/counters-page', icon: Book },
+          {
+            name: 'Statistics',
+            to: 'http://localhost:3001/',
+            icon: BarChart2,
+            external: true, // Mark as external link
+          },
         ]
         : []),
     ...(userRole === 'citizen'
@@ -96,9 +102,13 @@ const Navbar = () => {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-6">
-              {navItems.map((item, index) => (
-                  <NavItem key={item.name} item={item} index={index} />
-              ))}
+              {navItems.map((item, index) =>
+                  item.external ? (
+                      <ExternalNavItem key={item.name} item={item} index={index} />
+                  ) : (
+                      <NavItem key={item.name} item={item} index={index} />
+                  )
+              )}
               {userRole && (
                   <button
                       onClick={handleLogout}
@@ -144,9 +154,13 @@ const Navbar = () => {
                   transition={{ duration: 0.3 }}
               >
                 <div className="px-4 pt-2 pb-4 space-y-2">
-                  {navItems.map((item, index) => (
-                      <MobileNavItem key={item.name} item={item} setIsOpen={setIsOpen} index={index} />
-                  ))}
+                  {navItems.map((item, index) =>
+                      item.external ? (
+                          <ExternalMobileNavItem key={item.name} item={item} setIsOpen={setIsOpen} index={index} />
+                      ) : (
+                          <MobileNavItem key={item.name} item={item} setIsOpen={setIsOpen} index={index} />
+                      )
+                  )}
                   {userRole && (
                       <button
                           onClick={handleLogout}
@@ -163,6 +177,7 @@ const Navbar = () => {
   );
 };
 
+// Component for internal navigation items
 function NavItem({ item, index }) {
   return (
       <motion.div
@@ -182,6 +197,32 @@ function NavItem({ item, index }) {
               transition={{ duration: 0.3 }}
           />
         </Link>
+      </motion.div>
+  );
+}
+
+// Component for external navigation items
+function ExternalNavItem({ item, index }) {
+  return (
+      <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: index * 0.1 }}
+      >
+        <a
+            href={item.to}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="relative group text-gray-700 font-medium hover:text-black transition duration-300"
+        >
+          <span>{item.name}</span>
+          <motion.span
+              className="absolute bottom-0 left-0 w-full h-0.5 bg-black"
+              initial={{ scaleX: 0 }}
+              whileHover={{ scaleX: 1 }}
+              transition={{ duration: 0.3 }}
+          />
+        </a>
       </motion.div>
   );
 }
@@ -207,6 +248,34 @@ function MobileNavItem({ item, setIsOpen, index }) {
             {item.name}
           </motion.div>
         </Link>
+      </motion.div>
+  );
+}
+
+// Component for external mobile navigation items
+function ExternalMobileNavItem({ item, setIsOpen, index }) {
+  return (
+      <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3, delay: index * 0.1 }}
+      >
+        <a
+            href={item.to}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-100 transition duration-300"
+            onClick={() => setIsOpen(false)}
+        >
+          <motion.div
+              className="flex items-center"
+              whileHover={{ x: 5 }}
+              whileTap={{ scale: 0.95 }}
+          >
+            <item.icon className="h-5 w-5 mr-2" />
+            {item.name}
+          </motion.div>
+        </a>
       </motion.div>
   );
 }

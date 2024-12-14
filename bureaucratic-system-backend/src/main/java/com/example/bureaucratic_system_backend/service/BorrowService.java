@@ -35,6 +35,7 @@ public class BorrowService {
             String dueDate = LocalDate.now().plusDays(30).toString(); // Default loan period is 30 days
             Borrows borrow = new Borrows(borrowId, bookId, membershipId, borrowDate, dueDate, null);
             firebaseService.addBorrow(borrow);
+
             logger.info("Borrow record created successfully for borrow ID: {}", borrowId);
         } catch (Exception e) {
             logger.error("Error creating borrow record for borrow ID: {}: {}", borrowId, e.getMessage());

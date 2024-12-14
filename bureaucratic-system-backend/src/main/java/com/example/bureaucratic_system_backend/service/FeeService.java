@@ -82,7 +82,7 @@ public class FeeService {
 
             if (overdueDays > 0) {
                 String amount = String.valueOf(overdueDays * 1); // Example: $1 per day
-                Fees fee = new Fees(borrowId, borrow.getMembershipId(), amount, borrowId, "false");
+                Fees fee = new Fees(borrowId, borrow.getMembershipId(), amount, borrowId, "No");
 
                 // Check if fee ID already exists (reuse borrowId as fee ID)
                 if (firebaseService.documentExists("fees", fee.getId())) {
@@ -129,7 +129,7 @@ public class FeeService {
             logger.debug("Fetched fee details: {}", fetchedFee);
 
             // Update fee to mark as paid
-            fetchedFee.setPaid("true");
+            fetchedFee.setPaid("Yes");
             firebaseService.updateFee(fee.getId(), fetchedFee);
 
             logger.info("Fee successfully marked as paid. Fee ID: {}, Borrow ID: {}", fee.getId(), borrowId);

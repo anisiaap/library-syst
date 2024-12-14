@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { auth } from '../firebaseconfig'; // Firebase Auth
 import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
-import {useAuth} from "../components/AuthProvider"; // Firestore
+import { useAuth } from "../components/AuthProvider"; // Firestore
 
 const Enroll = () => {
     const [id, setId] = useState('');
     const [name, setName] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [modalMessage, setModalMessage] = useState(''); // For modal messages
+    const [isModalVisible, setIsModalVisible] = useState(false); // Modal visibility
     const { role } = useAuth(); // Get the user and role from AuthContext
     const db = getFirestore();
 
@@ -53,10 +55,17 @@ const Enroll = () => {
                     Authorization: `${role}`, // Use the role as the token
                 }
             });
-            alert('Citizen enrolled successfully!');
+            setModalMessage('Citizen enrolled successfully!');
+            setIsModalVisible(true); // Show success modal
         } catch (err) {
-            alert('Error: ' + err.message);
+            setModalMessage('Error: ' + err.message);
+            setIsModalVisible(true); // Show error modal
         }
+    };
+
+    const closeModal = () => {
+        setIsModalVisible(false);
+        setModalMessage('');
     };
 
     if (loading) {
@@ -115,6 +124,23 @@ const Enroll = () => {
                     </button>
                 </form>
             </div>
+
+            {/* Modal */}
+            {isModalVisible && (
+                <div
+                    className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
+                >
+                    <div className="bg-white p-6 rounded shadow-lg max-w-sm w-full text-center">
+                        <p className="text-lg font-medium mb-4">{modalMessage}</p>
+                        <button
+                            onClick={closeModal}
+                            className="bg-[#A87C5A] text-white font-semibold py-2 px-4 rounded hover:bg-[#8B5E3C]"
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

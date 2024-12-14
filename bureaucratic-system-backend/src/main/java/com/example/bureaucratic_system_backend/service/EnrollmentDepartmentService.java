@@ -18,7 +18,7 @@ public class EnrollmentDepartmentService {
     }
 
     public boolean isCitizenEnrolled(Citizen citizen) {
-        String existingMembership = firebaseService.getMembershipIdById(citizen.getId());
+        String existingMembership = FirebaseService.getMembershipIdById(citizen.getId());
         return existingMembership != null;
     }
 

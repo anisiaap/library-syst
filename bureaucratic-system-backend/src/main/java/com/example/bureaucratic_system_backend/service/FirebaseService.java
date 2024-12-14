@@ -45,7 +45,113 @@ public class FirebaseService {
             return null;
         }
     }
+    public static void saveCounterToFirestore(Counter counter) {
+        try {
+            Firestore firestore = getFirestore();
+            firestore.collection("counters").document(String.valueOf(counter.getCounterId()))
+                    .set(Map.of(
+                            "counterId", counter.getCounterId(),
+                            "isPaused", counter.isPaused()
+                    )).get();
+            logger.info("Counter {} initialized in Firestore.", counter.getCounterId());
+        } catch (Exception e) {
+            logger.error("Error saving counter to Firestore: {}", e.getMessage());
+        }
+    }
+    public static Map<String, Object> getCounterById(int counterId) {
+        try {
+            Firestore firestore = FirestoreClient.getFirestore();
+            ApiFuture<QuerySnapshot> query = firestore.collection("counters")
+                    .whereEqualTo("counterId", counterId)
+                    .get();
+            List<QueryDocumentSnapshot> documents = query.get().getDocuments();
 
+            if (!documents.isEmpty()) {
+                return documents.get(0).getData(); // Return the first matching counter
+            } else {
+                System.err.println("Counter not found for ID: " + counterId);
+                return null;
+            }
+        } catch (Exception e) {
+            System.err.println("Error fetching counter by ID: " + e.getMessage());
+            return null;
+        }
+    }
+    public static void listenToCounterChanges(Map<Integer, Object> counterLocks, Map<Integer, Boolean> counterPauseStatus) {
+        Firestore firestore = getFirestore();
+        firestore.collection("counters").addSnapshotListener((snapshots, e) -> {
+            if (e != null) {
+                System.err.println("Error listening to counters: " + e.getMessage());
+                return;
+            }
+
+            if (snapshots != null) {
+                for (DocumentChange dc : snapshots.getDocumentChanges()) {
+                    Map<String, Object> counterData = dc.getDocument().getData();
+                    Integer counterId = (counterData.containsKey("counterId"))
+                            ? ((Long) counterData.get("counterId")).intValue()
+                            : null;
+                    Boolean isPaused = (Boolean) counterData.get("isPaused");
+
+                    if (counterId != null) {
+                        counterPauseStatus.put(counterId, isPaused);
+
+                        // Notify the thread if the counter is no longer paused
+                        if (!isPaused) {
+                            synchronized (counterLocks.get(counterId)) {
+                                counterLocks.get(counterId).notifyAll();
+                            }
+                            System.out.printf("Counter %d resumed from Firestore changes.%n", counterId);
+                        }
+                    }
+                }
+            }
+        });
+    }
+    public static void updateCounterState(int counterId, boolean isPaused) {
+        try {
+            Firestore firestore = getFirestore();
+            firestore.collection("counters").document(String.valueOf(counterId))
+                    .update("isPaused", isPaused).get();
+            logger.info("Counter {} state updated to {}.", counterId, isPaused ? "Paused" : "Active");
+        } catch (Exception e) {
+            logger.error("Error updating counter state in Firestore: {}", e.getMessage());
+        }
+    }
+    public static List<Counter> getAllCounters() {
+        List<Counter> counters = new ArrayList<>();
+        try {
+            Firestore firestore = getFirestore();
+            ApiFuture<QuerySnapshot> query = firestore.collection("counters").get();
+            List<QueryDocumentSnapshot> documents = query.get().getDocuments();
+
+            for (QueryDocumentSnapshot document : documents) {
+                int counterId = document.getLong("counterId").intValue();
+                boolean isPaused = document.getBoolean("isPaused");
+                counters.add(new Counter(counterId, isPaused));
+            }
+        } catch (Exception e) {
+            logger.error("Error fetching counters from Firestore: {}", e.getMessage());
+        }
+        return counters;
+    }
+    public static void clearCountersCollection() {
+        Firestore firestore = getFirestore();
+
+        try {
+            ApiFuture<QuerySnapshot> query = firestore.collection("counters").get();
+            List<QueryDocumentSnapshot> documents = query.get().getDocuments();
+
+            for (QueryDocumentSnapshot document : documents) {
+                firestore.collection("counters").document(document.getId()).delete();
+                logger.info("Deleted counter document: {}", document.getId());
+            }
+
+            logger.info("All counters cleared from Firestore.");
+        } catch (Exception e) {
+            logger.error("Error clearing counters collection: {}", e.getMessage());
+        }
+    }
     // ----------------------- Memberships -----------------------
 
     public static String getMembershipIdById(String citizenId) {
@@ -128,7 +234,7 @@ public class FirebaseService {
         }
     }
 
-    public void updateBookField(String bookId, String fieldName, Object value) {
+    public static void updateBookField(String bookId, String fieldName, Object value) {
         updateField("books", bookId, fieldName, value);
     }
 
@@ -304,7 +410,7 @@ public class FirebaseService {
             System.err.println("Error deleting borrow record: " + e.getMessage());
         }
     }
-    public Borrows getBorrowByMembershipAndBook(String membershipId, String bookTitle, String bookAuthor) {
+    public static Borrows getBorrowByMembershipAndBook(String membershipId, String bookTitle, String bookAuthor) {
         try {
             // Step 1: Fetch the Book ID from the Books collection
             ApiFuture<QuerySnapshot> bookQuery = getFirestore().collection("books")
@@ -342,7 +448,7 @@ public class FirebaseService {
 
     // ----------------------- General -----------------------
 
-    public void updateField(String collectionName, String documentId, String fieldName, Object value) {
+    public static void updateField(String collectionName, String documentId, String fieldName, Object value) {
         Map<String, Object> updates = new HashMap<>();
         updates.put(fieldName, value);
 

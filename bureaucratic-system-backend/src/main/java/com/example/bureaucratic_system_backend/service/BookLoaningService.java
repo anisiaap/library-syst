@@ -1,9 +1,6 @@
 package com.example.bureaucratic_system_backend.service;
 
-import com.example.bureaucratic_system_backend.model.Book;
-import com.example.bureaucratic_system_backend.model.Citizen;
-import com.example.bureaucratic_system_backend.model.Department;
-import com.example.bureaucratic_system_backend.model.LoanRequest;
+import com.example.bureaucratic_system_backend.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +23,7 @@ public class BookLoaningService implements Department {
 
     private final Queue<LoanRequest> queue = new LinkedBlockingQueue<>();
     private final Map<String, Lock> bookLocks = new ConcurrentHashMap<>();
+    private final List<Counter> countersList = new ArrayList<>();
     private static BookLoaningService instance;
 
     private final List<Thread> counters = new ArrayList<>();
@@ -47,7 +45,7 @@ public class BookLoaningService implements Department {
     }
 
     private int readCounterConfig() {
-        try (BufferedReader reader = new BufferedReader(new FileReader("/Users/anisiapirvulescu/Desktop/cebp/bureaucratic-system-backend/src/main/java/com/example/bureaucratic_system_backend/config/config.txt"))) {
+        try (BufferedReader reader = new BufferedReader(new FileReader("/Users/anisiapirvulescu/Desktop/bureaucratic-system-2/bureaucratic-system-backend/src/main/java/com/example/bureaucratic_system_backend/config/config.txt"))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.startsWith("counters=")) {
@@ -61,13 +59,37 @@ public class BookLoaningService implements Department {
     }
 
     private void initializeCounters(int numberOfCounters) {
+        logger.info("Initializing {} counters...", numberOfCounters);
+        FirebaseService.clearCountersCollection(); // Clean Firestore counters collection
+
         for (int i = 1; i <= numberOfCounters; i++) {
             final int counterId = i;
-            counterPauseStatus.put(counterId, false);
+
+            // Initialize lock for the counter
             counterLocks.put(counterId, new Object());
+
+            // Add initial paused state for the counter
+            counterPauseStatus.put(counterId, false);
+
+            // Create and save the Counter model to Firestore
+            Counter counter = new Counter(counterId, false); // Default: not paused
+            countersList.add(counter);
+            FirebaseService.saveCounterToFirestore(counter);
+
+            logger.info("Counter {} initialized in memory and saved to Firestore.", counterId);
+        }
+
+        // Set up Firestore listener for counters
+        FirebaseService.listenToCounterChanges(counterLocks, counterPauseStatus);
+
+        // Start threads for each counter
+        for (int i = 1; i <= numberOfCounters; i++) {
+            final int counterId = i;
             Thread counterThread = new Thread(() -> processQueue(counterId));
             counters.add(counterThread);
             counterThread.start();
+
+            logger.info("Thread for Counter {} started.", counterId);
         }
     }
 
@@ -80,12 +102,19 @@ public class BookLoaningService implements Department {
     }
 
     private void processQueue(int counterId) {
+        Object lock = counterLocks.get(counterId);
+
+        if (lock == null) {
+            logger.error("No lock found for counter {}. Exiting thread.", counterId);
+            return; // Stop processing if no lock is found
+        }
+
         while (true) {
             try {
-                synchronized (counterLocks.get(counterId)) {
-                    while (counterPauseStatus.get(counterId)) {
+                synchronized (lock) {
+                    while (isCounterPausedInFirestore(counterId)) {
                         logger.info("Counter {} is paused. Waiting...", counterId);
-                        counterLocks.get(counterId).wait();
+                        lock.wait(); // Wait until notified
                     }
                 }
 
@@ -100,7 +129,7 @@ public class BookLoaningService implements Department {
                     tryToBorrowBook(request.getCitizenId(), request.getBookTitle(), request.getBookAuthor());
                 } else {
                     synchronized (queue) {
-                        queue.wait();
+                        queue.wait(); // Wait for new requests
                     }
                 }
             } catch (InterruptedException e) {
@@ -110,9 +139,49 @@ public class BookLoaningService implements Department {
             }
         }
     }
+    private boolean isCounterPausedInFirestore(int counterId) {
+        try {
+            Map<String, Object> counterData = FirebaseService.getCounterById(counterId);
+            if (counterData != null) {
+                // Check if the "isPaused" key exists and cast the value properly
+                if (counterData.containsKey("isPaused")) {
+                    Object pausedState = counterData.get("isPaused");
+                    if (pausedState instanceof Boolean) {
+                        return (boolean) pausedState;
+                    } else {
+                        logger.warn("Invalid data type for 'isPaused' in counter {}. Assuming paused.", counterId);
+                        return true; // Assume paused if data type is invalid
+                    }
+                } else {
+                    logger.warn("'isPaused' field not found for counter {}. Assuming paused.", counterId);
+                    return true; // Assume paused if key is missing
+                }
+            } else {
+                logger.warn("No counter data found for counter {}. Assuming paused.", counterId);
+                return true; // Assume paused if no data is found
+            }
+        } catch (Exception e) {
+            logger.error("Error fetching counter state from Firestore for counter {}: {}", counterId, e.getMessage());
+            return true; // Assume paused in case of error
+        }
+    }
 
     private void tryToBorrowBook(String citizenId, String bookTitle, String bookAuthor) {
         logger.info("Attempting to borrow book '{}' by '{}' for citizen ID {}.", bookTitle, bookAuthor, citizenId);
+
+        String membershipId = FirebaseService.getMembershipIdById(citizenId);
+        if (membershipId == null) {
+            logger.warn("Citizen ID {} does not have a valid membership.", citizenId);
+            return;
+        }
+
+        Borrows existingBorrow = FirebaseService.getBorrowByMembershipAndBook(membershipId, bookTitle, bookAuthor);
+        if (existingBorrow != null) {
+            logger.warn("Citizen ID {} has already borrowed the book '{}' by '{}' and has not returned it yet.",
+                    citizenId, bookTitle, bookAuthor);
+            return;
+        }
+
         Book book = FirebaseService.getBookByTitleAndAuthor(bookTitle, bookAuthor);
         if (book == null) {
             logger.warn("Book '{}' by '{}' not found in the system.", bookTitle, bookAuthor);
@@ -127,7 +196,7 @@ public class BookLoaningService implements Department {
             if (book.isAvailable() && FirebaseService.getMembershipIdById(citizenId) != null) {
                 logger.info("Book '{}' by '{}' is available. Assigning it to citizen ID {}.", bookTitle, bookAuthor, citizenId);
                 book.setAvailable(false);
-                String membershipId = FirebaseService.getMembershipIdById(citizenId);
+                FirebaseService.updateBookField(book.getId(), "available", false);
                 //FirebaseService.borrowBook(book.getId(), FirebaseService.getMembershipIdById(citizenId));
                 String borrowId = UUID.randomUUID().toString();
                 borrowService.createBorrow(borrowId, book.getId(), membershipId);
@@ -141,27 +210,31 @@ public class BookLoaningService implements Department {
             logger.info("Released lock for book '{}' by '{}'.", bookTitle, bookAuthor);
         }
     }
-
     @Override
     public void pauseCounter(int counterId) {
-        if (counterPauseStatus.containsKey(counterId)) {
-            counterPauseStatus.put(counterId, true);
-            logger.info("Paused counter {}.", counterId);
-        } else {
-            logger.warn("Counter {} does not exist. Unable to pause.", counterId);
-        }
+        countersList.stream()
+                .filter(counter -> counter.getCounterId() == counterId)
+                .findFirst()
+                .ifPresent(counter -> {
+                    counter.setPaused(true);
+                    FirebaseService.updateCounterState(counterId, true); // Update state in Firebase
+                    logger.info("Paused counter {}.", counterId);
+                });
     }
 
     @Override
     public void resumeCounter(int counterId) {
-        if (counterPauseStatus.containsKey(counterId)) {
-            counterPauseStatus.put(counterId, false);
-            synchronized (counterLocks.get(counterId)) {
-                counterLocks.get(counterId).notify();
-            }
-            logger.info("Resumed counter {}.", counterId);
-        } else {
-            logger.warn("Counter {} does not exist. Unable to resume.", counterId);
-        }
+        countersList.stream()
+                .filter(counter -> counter.getCounterId() == counterId)
+                .findFirst()
+                .ifPresent(counter -> {
+                    counter.setPaused(false);
+                    FirebaseService.updateCounterState(counterId, false); // Update state in Firebase
+                    synchronized (counterLocks.get(counterId)) {
+                        counterLocks.get(counterId).notify();
+                    }
+                    logger.info("Resumed counter {}.", counterId);
+                });
     }
+
 }

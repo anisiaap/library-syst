@@ -36,6 +36,11 @@ public class ReturnService {
 
             // Generate overdue fee if necessary
             feeService.generateOverdueFee(borrow.getId());
+            // Update the book's availability
+            String bookId = borrow.getBookId();
+            if (bookId != null) {
+                FirebaseService.updateBookField(bookId, "available", true); // Set available to true
+            }
 
             logger.info("Book return processed successfully for membership ID: {}, book: '{}', author: '{}'",
                     membershipId, bookTitle, bookAuthor);
