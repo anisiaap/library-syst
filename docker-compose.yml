@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./bureaucratic-system-backend  # Path to your Spring Boot project
+    ports:
+      - 8080:8080  # Map backend container port to host
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ./bureaucratic-system-frontend # Path to your React project
+    ports:
+      - 3000:80  # Map frontend container port to host
+    networks:
+      - app-network
+    environment:
+      REACT_APP_BACKEND_URL: http://backend:8080/
+
+  statistics:
+    build:
+      context: ./bureaucratic-system-statistics # Path to your statistics project
+    ports:
+      - 3001:81  # Map statistics container port to host
+    networks:
+      - app-network
+    environment:
+      REACT_APP_BACKEND_URL: http://backend:8080/
+
+networks:
+  app-network:
+    driver: bridge
