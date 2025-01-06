@@ -5,7 +5,12 @@
 This repository contains the __**second**__ part of the Concurrent and Event-Based Programming project.
 
  ⚠️ The first part of the project, which addresses concurrency issues, can be found at: 🔗[Bureaucracy Manager - Part 1](https://github.com/MalinaNeag/bureaucratic-system)
+
+
+![ezgif com-animated-gif-maker](https://github.com/user-attachments/assets/ab50ae2a-5bb7-4931-960d-46e5b19fd0f1)
+
 Here’s the updated README in .readme.rm format:
+
 
 ## Overview
 The Bureaucracy Manager is a backend system designed to streamline interactions within a bureaucratic environment. Using the context of a public library system, it enables citizens to request services like book loans, enrollment, and fee management while simulating real-world complexities like concurrency and coffee breaks.
@@ -111,6 +116,7 @@ Oversees library operations, including book availability, loan histories, and ad
 - **Simultaneous Book Loan Requests**  
   **Problem**: Multiple requests for the same book could lead to inconsistencies.  
   **Solution**: A `ConcurrentHashMap` is used to lock individual books, ensuring only one thread can modify the book's state at a time.
+
 ![image](https://github.com/user-attachments/assets/55afa82a-c6e0-43b5-a993-38f8d433e314)
 
 - **Concurrent Citizen Enrollment**  
@@ -120,7 +126,8 @@ Oversees library operations, including book availability, loan histories, and ad
 - **Updating Book Database**  
   **Problem**: Conflicts from concurrent admin updates.  
   **Solution**: A write lock ensures no simultaneous updates.
-  ![image](https://github.com/user-attachments/assets/48bed96b-3cb4-479b-bf22-94a2f677d70c)
+
+   ![image](https://github.com/user-attachments/assets/48bed96b-3cb4-479b-bf22-94a2f677d70c)
 
 
 - **Queue Management for Loan Requests**  
@@ -145,16 +152,6 @@ counters=number
 counters=2
 
 This specifies the number of counters available in the system. Changes to the configuration file are dynamically loaded.
-
-<img width="1300" alt="Screenshot 2024-12-08 at 06 00 56" src="https://github.com/user-attachments/assets/e152663e-8aab-4a0a-b5ec-6f2e1ed1c35c">
-<img width="1322" alt="Screenshot 2024-12-08 at 06 01 21" src="https://github.com/user-attachments/assets/22a8d3a0-d0fe-41dd-816f-d635ebd2c63c">
-<img width="1303" alt="Screenshot 2024-12-08 at 06 01 36" src="https://github.com/user-attachments/assets/8cca5c15-ef20-480f-8139-badebcb944de">
-<img width="1316" alt="Screenshot 2024-12-08 at 06 01 28" src="https://github.com/user-attachments/assets/f24e1854-16e8-4199-91a4-3970ecc624da">
-<img width="1333" alt="Screenshot 2024-12-08 at 06 02 15" src="https://github.com/user-attachments/assets/98a6d741-8852-4f4d-89d9-9a9b8bee2f97">
-<img width="1250" alt="Screenshot 2024-12-08 at 06 01 49" src="https://github.com/user-attachments/assets/c66f487f-7f38-4b73-ae4b-2a810f80bf13">
-<img width="1227" alt="Screenshot 2024-12-08 at 06 01 42" src="https://github.com/user-attachments/assets/c5d1f66f-0af5-4cc9-9093-a2a87c4d3f66">
-<img width="1313" alt="Screenshot 2024-12-08 at 06 00 43" src="https://github.com/user-attachments/assets/810b1907-5f0c-4f6b-a429-078cccc017f2">
-<img width="1412" alt="Screenshot 2024-12-08 at 06 00 35" src="https://github.com/user-attachments/assets/71ff4314-00c1-4513-9887-89f7a3038192">
 
 ---
 
