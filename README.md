@@ -1,6 +1,6 @@
 
 # Bureaucracy Manager - Part 2 
-# Bureaucracy Manager - CEBP PROJECT
+# Bureaucracy Manager - Concurrent and Event-Based Programming project
 
 This repository contains the __**second**__ part of the Concurrent and Event-Based Programming project.
 
